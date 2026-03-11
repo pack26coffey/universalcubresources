@@ -645,24 +645,19 @@
 
         // --- Firebase Init ---
         let fbConfig = null;
-        try { if (typeof window.__firebase_config !== 'undefined') fbConfig = JSON.parse(window.__firebase_config); } catch (e) {}
-        if (!fbConfig || !fbConfig.apiKey) {
-            fbConfig = {
-                apiKey: "AIzaSyDco3YdquBXu90sItwIJ9GLvof8_fvUhzo",
-                authDomain: "universal-cub.firebaseapp.com",
-                projectId: "universal-cub",
-                storageBucket: "universal-cub.firebasestorage.app",
-                messagingSenderId: "1027621236936",
-                appId: "1:1027621236936:web:aa023f54ddb6938c4d75fd"
-            };
-        }
+        try { 
+            if (typeof window.__firebase_config !== 'undefined') fbConfig = JSON.parse(window.__firebase_config); 
+        } catch (e) {}
 
+        // Only connect to Firebase if the official Canvas environment config is present.
+        // This prevents StackBlitz exports from colliding in a generic fallback database.
         if (fbConfig && fbConfig.apiKey) {
             const app = initializeApp(fbConfig); 
             auth = getAuth(app); 
-            // Force memory cache to prevent IndexedDB crashes in iframe environments like StackBlitz
             db = initializeFirestore(app, { localCache: memoryLocalCache() }); 
             useFirebase = true;
+        } else {
+            console.log("Cloud sync disabled. Running entirely on local storage.");
         }
 
         if (useFirebase) {
@@ -1010,7 +1005,7 @@
                                         if (vol) newVolunteers.push(vol);
                                     });
                                     volunteers = newVolunteers;
-                                    window.syncToCloud();
+                                    if (useFirebase) window.syncToCloud();
                                 }
                             });
                         }
@@ -1060,14 +1055,14 @@
 
             window.closeVolunteerModal();
             window.render();
-            window.syncToCloud();
+            if (useFirebase) window.syncToCloud();
         }
 
         window.deleteVolunteer = function(id) {
             if(confirm("Remove this volunteer role?")) {
                 volunteers = volunteers.filter(v => v.id !== id);
                 window.render();
-                window.syncToCloud();
+                if (useFirebase) window.syncToCloud();
             }
         }
 
@@ -1242,7 +1237,7 @@
                 id = Date.now();
                 const todayStr = new Date().toISOString().split('T')[0];
                 committeeNotes.push({ id: id, type: type, date: todayStr, attendees: '', cashOnHand: '', financeNotes: '', volunteerStatus: '', cp: '', co: '', np: '', no: '', fp: '', fo: '', action: '', rtName: '', rtComments: '', notes: '' });
-                window.syncToCloud();
+                if (useFirebase) window.syncToCloud();
             }
             
             currentCommEditId = id;
@@ -1297,7 +1292,7 @@
             const note = committeeNotes.find(n => n.id === currentCommEditId);
             if (note && !note.notes?.trim() && !note.attendees?.trim() && !note.cashOnHand?.trim() && !note.cp?.trim() && !note.action?.trim() && !note.rtComments?.trim()) {
                 committeeNotes = committeeNotes.filter(n => n.id !== currentCommEditId);
-                window.syncToCloud();
+                if (useFirebase) window.syncToCloud();
             }
             document.getElementById('committee-modal').classList.replace('flex', 'hidden');
             window.render(); 
@@ -1329,7 +1324,13 @@
                     note.rtComments = document.getElementById('comm-rtcomments').value;
                     note.notes = document.getElementById('comm-notes').value;
                     
-                    window.syncToCloud();
+                    window.render();
+                    
+                    if (useFirebase) {
+                        window.syncToCloud();
+                    } else {
+                        // Silent local success
+                    }
                     
                     statusEl.innerText = 'Saved';
                     statusEl.className = 'text-green-500 text-[9px] font-bold uppercase tracking-widest mt-0.5';
@@ -1340,8 +1341,8 @@
         window.deleteCommitteeNote = function(id) {
             if(confirm("Permanently delete this meeting's minutes?")) {
                 committeeNotes = committeeNotes.filter(n => n.id !== id);
-                window.syncToCloud();
                 window.render();
+                if (useFirebase) window.syncToCloud();
             }
         }
 
@@ -1640,7 +1641,8 @@
                             const cat = categories.find(c => c.id === el.dataset.id);
                             if (cat) newCategories.push(cat);
                         });
-                        categories = newCategories; window.syncToCloud();
+                        categories = newCategories; 
+                        if (useFirebase) window.syncToCloud();
                     }
                 });
                 document.querySelectorAll('.link-grid').forEach(grid => {
@@ -1657,7 +1659,8 @@
                                     if (linkObj) { linkObj.categoryId = catId; newLinks.push(linkObj); }
                                 });
                             });
-                            links = newLinks; window.syncToCloud();
+                            links = newLinks; 
+                            if (useFirebase) window.syncToCloud();
                         }
                     });
                 });
@@ -1751,7 +1754,8 @@
                 const item = prompt(`Enter new ${arrayName === 'eventTypes' ? 'Event Type' : 'Leader'}:`);
                 if (item && item.trim() && !arr.includes(item.trim())) {
                     arr.push(item.trim());
-                    window.syncToCloud();
+                    window.render();
+                    if (useFirebase) window.syncToCloud();
                     window.buildPlannerDropdowns(
                         arrayName === 'eventTypes' ? item.trim() : document.getElementById('plan-type').value, 
                         arrayName === 'leaders' ? item.trim() : document.getElementById('plan-leader').value,
@@ -1766,7 +1770,8 @@
                     } else {
                         leaders = leaders.filter(i => i !== val);
                     }
-                    window.syncToCloud();
+                    window.render();
+                    if (useFirebase) window.syncToCloud();
                     window.buildPlannerDropdowns(
                         document.getElementById('plan-type').value, 
                         document.getElementById('plan-leader').value,
@@ -1828,14 +1833,14 @@
 
             window.closePlannerModal();
             window.render();
-            window.syncToCloud();
+            if (useFirebase) window.syncToCloud();
         }
 
         window.deletePlan = function(id) {
             if(confirm("Remove this event from the planner?")) {
                 plans = plans.filter(p => p.id !== id);
                 window.render();
-                window.syncToCloud();
+                if (useFirebase) window.syncToCloud();
             }
         }
 
@@ -1983,7 +1988,7 @@
         };
 
         window.deleteLink = function(id) {
-            if (confirm("Remove this tile?")) { links = links.filter(l => l.id !== id); window.render(); window.syncToCloud(); }
+            if (confirm("Remove this tile?")) { links = links.filter(l => l.id !== id); window.render(); if (useFirebase) window.syncToCloud(); }
         };
 
         window.editCategory = function(id) {
@@ -1997,7 +2002,7 @@
         }
 
         window.deleteCategory = function(id) {
-            if (confirm("Delete this category AND all links inside it?")) { categories = categories.filter(c => c.id !== id); links = links.filter(l => l.categoryId !== id); window.render(); window.syncToCloud(); }
+            if (confirm("Delete this category AND all links inside it?")) { categories = categories.filter(c => c.id !== id); links = links.filter(l => l.categoryId !== id); window.render(); if (useFirebase) window.syncToCloud(); }
         }
 
         window.closeModal = () => document.getElementById('modal-overlay').classList.replace('flex', 'hidden');
@@ -2085,7 +2090,13 @@
                     link.url = safeUrl; link.categoryId = document.getElementById('input-category').value; link.img = document.getElementById('input-image').value; link.zoom = document.getElementById('input-zoom').value;
                 }
             }
-            window.closeModal(); window.render(); window.syncToCloud(); 
+            window.closeModal(); 
+            window.render(); 
+            if (useFirebase) {
+                window.syncToCloud(); 
+            } else {
+                // If cloud sync is disabled, saving just uses the silent localStorage backup built into render()
+            }
         };
 
         // --- Mouse Drag Events ---
