@@ -649,8 +649,18 @@
             if (typeof window.__firebase_config !== 'undefined') fbConfig = JSON.parse(window.__firebase_config); 
         } catch (e) {}
 
-        // Only connect to Firebase if the official Canvas environment config is present.
-        // This prevents StackBlitz exports from colliding in a generic fallback database.
+        // Use your Firebase config when running outside of Canvas (like StackBlitz)
+        if (!fbConfig || !fbConfig.apiKey) {
+            fbConfig = {
+                apiKey: "AIzaSyDco3YdquBXu90sItwIJ9GLvof8_fvUhzo",
+                authDomain: "universal-cub.firebaseapp.com",
+                projectId: "universal-cub",
+                storageBucket: "universal-cub.firebasestorage.app",
+                messagingSenderId: "1027621236936",
+                appId: "1:1027621236936:web:aa023f54ddb6938c4d75fd"
+            };
+        }
+
         if (fbConfig && fbConfig.apiKey) {
             const app = initializeApp(fbConfig); 
             auth = getAuth(app); 
