@@ -587,6 +587,10 @@
 
         const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'universal-cub';
         
+        // --- Conflict Resolution State ---
+        let localUpdatedAt = parseInt(localStorage.getItem('scout_updatedAt')) || 0;
+        let isSyncing = false;
+        
         // Theme init
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -673,6 +677,21 @@
                         onSnapshot(docRef, (snap) => {
                             if (snap.exists()) {
                                 const data = snap.data();
+                                const cloudUpdatedAt = data.updatedAt || 0;
+
+                                // Offline-First Conflict Resolution:
+                                // If our local edits are newer than the cloud by a margin (e.g. recent failure to sync),
+                                // DO NOT let the cloud overwrite our local state. Force a re-sync instead.
+                                if (localUpdatedAt > cloudUpdatedAt + 2000) {
+                                    console.warn("Local data is significantly newer than incoming cloud data. Initiating protective sync...");
+                                    window.syncToCloud();
+                                    return;
+                                }
+
+                                // Otherwise, accept the incoming cloud data as the source of truth
+                                localUpdatedAt = cloudUpdatedAt;
+                                localStorage.setItem('scout_updatedAt', localUpdatedAt.toString());
+
                                 if (data.categories) categories = data.categories;
                                 if (data.links) links = data.links;
                                 if (data.settings) settings = { ...defaultSettings, ...data.settings };
@@ -690,12 +709,22 @@
         }
 
         window.syncToCloud = async function() {
-            if (!useFirebase || !currentUser) return;
+            if (!useFirebase || !currentUser || isSyncing) return;
+            isSyncing = true;
             try {
+                // Advance the local timestamp to stake our claim on the newest data
+                localUpdatedAt = Date.now();
+                localStorage.setItem('scout_updatedAt', localUpdatedAt.toString());
+
                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'packData', 'config');
-                const payload = JSON.parse(JSON.stringify({ links, settings, categories, plans, committeeNotes, eventTypes, leaders, volunteers, updatedAt: Date.now() }));
+                const payload = JSON.parse(JSON.stringify({ links, settings, categories, plans, committeeNotes, eventTypes, leaders, volunteers, updatedAt: localUpdatedAt }));
                 await setDoc(docRef, payload);
-            } catch (error) { console.error("Failed to sync to cloud", error); }
+            } catch (error) { 
+                console.error("Failed to sync to cloud. Changes will remain local until reconnected.", error); 
+                window.showToast("Connection issue. Changes saved locally.", true);
+            } finally {
+                isSyncing = false;
+            }
         };
 
         // --- Dynamic Favicon Generator ---
@@ -891,6 +920,7 @@
             localStorage.setItem('scout_event_types', JSON.stringify(eventTypes));
             localStorage.setItem('scout_leaders', JSON.stringify(leaders));
             localStorage.setItem('scout_volunteers', JSON.stringify(volunteers));
+            localStorage.setItem('scout_updatedAt', localUpdatedAt.toString());
         };
 
         window.switchView = function(view) {
