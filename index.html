@@ -566,7 +566,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeFirestore, memoryLocalCache, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Add auto resize function for textareas
         window.autoResizeTextarea = function(el) {
@@ -658,7 +658,11 @@
         }
 
         if (fbConfig && fbConfig.apiKey) {
-            const app = initializeApp(fbConfig); auth = getAuth(app); db = getFirestore(app); useFirebase = true;
+            const app = initializeApp(fbConfig); 
+            auth = getAuth(app); 
+            // Force memory cache to prevent IndexedDB crashes in iframe environments like StackBlitz
+            db = initializeFirestore(app, { localCache: memoryLocalCache() }); 
+            useFirebase = true;
         }
 
         if (useFirebase) {
