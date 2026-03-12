@@ -257,25 +257,25 @@
 
     <!-- Login Modal -->
     <div id="login-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[200] hidden items-center justify-center p-6">
-        <div class="bg-white dark:bg-slate-900 rounded-[3rem] w-full max-w-sm overflow-hidden flex flex-col shadow-2xl modal-animate border-b-[16px] border-yellow-400">
-            <div class="bg-blue-900 p-6 text-white flex justify-between items-center">
-                <h3 class="text-xl font-black uppercase tracking-widest flex items-center gap-2"><i data-lucide="shield-check" class="w-5 h-5"></i> Secure Access</h3>
-                <button onclick="window.closeLoginModal()" class="p-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        <div class="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl modal-animate border-b-8 border-yellow-400">
+            <div class="bg-blue-900 p-5 text-white flex justify-between items-center">
+                <h3 class="text-lg font-black uppercase tracking-widest flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4"></i> Secure Access</h3>
+                <button onclick="window.closeLoginModal()" class="p-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
-            <div class="p-8 flex flex-col gap-6">
+            <div class="p-6 sm:p-8 flex flex-col gap-5">
                 <p class="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-center leading-relaxed">
                     Enter your secure access key below to unlock advanced management features.
                 </p>
                 <div class="relative">
-                    <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Access Key</label>
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Access Key</label>
                     <div class="relative flex items-center">
-                        <input type="password" id="login-password" class="w-full p-4 pr-12 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold text-lg outline-none focus:ring-4 ring-blue-900/10 dark:text-white transition-all tracking-widest" placeholder="••••••••" onkeydown="if(event.key === 'Enter') window.submitLogin()">
-                        <button id="toggle-password-btn" onclick="window.togglePasswordVisibility()" class="absolute right-4 text-slate-400 hover:text-blue-600 transition-colors focus:outline-none">
-                            <i data-lucide="eye" class="w-5 h-5"></i>
+                        <input type="password" id="login-password" class="w-full p-3 pr-10 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-base outline-none focus:ring-2 ring-blue-900/10 dark:text-white transition-all tracking-widest" placeholder="••••••••" onkeydown="if(event.key === 'Enter') window.submitLogin()">
+                        <button id="toggle-password-btn" onclick="window.togglePasswordVisibility()" class="absolute right-3 text-slate-400 hover:text-blue-600 transition-colors focus:outline-none">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
                         </button>
                     </div>
                 </div>
-                <button onclick="window.submitLogin()" class="w-full py-4 bg-yellow-400 text-blue-900 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-yellow-300 transition-all active:scale-95 flex justify-center items-center gap-2">
+                <button onclick="window.submitLogin()" class="w-full py-3 bg-yellow-400 text-blue-900 rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-yellow-300 transition-all active:scale-95 flex justify-center items-center gap-2">
                     Unlock <i data-lucide="key" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -283,42 +283,42 @@
     </div>
 
     <!-- Universal Identity/Links/AppIcon/Header Modal -->
-    <div id="modal-overlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[100] hidden items-center justify-center p-6">
-        <div class="bg-white dark:bg-slate-900 rounded-[4rem] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl modal-animate border-b-[16px] border-blue-900">
-            <div class="bg-blue-900 p-8 text-white flex justify-between items-center">
-                <h3 id="modal-title" class="text-2xl font-black uppercase tracking-widest">Settings</h3>
-                <button onclick="window.closeModal()" class="p-3 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="x"></i></button>
+    <div id="modal-overlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[100] hidden items-center justify-center p-4 sm:p-6">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl modal-animate border-b-8 border-blue-900">
+            <div class="bg-blue-900 p-4 sm:p-5 text-white flex justify-between items-center">
+                <h3 id="modal-title" class="text-lg md:text-xl font-black uppercase tracking-widest">Settings</h3>
+                <button onclick="window.closeModal()" class="p-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <div class="p-8 md:p-10 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-12" id="modal-grid">
-                <div class="space-y-6">
+            <div class="p-5 sm:p-6 md:p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8" id="modal-grid">
+                <div class="space-y-4">
                     <div id="field-title">
-                        <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Title</label>
-                        <input id="input-title" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold text-lg outline-none focus:ring-4 ring-blue-900/10 dark:text-white transition-all">
+                        <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Title</label>
+                        <input id="input-title" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm sm:text-base outline-none focus:ring-2 ring-blue-900/10 dark:text-white transition-all">
                     </div>
                     <div id="field-url">
-                        <div class="flex justify-between items-end mb-2">
+                        <div class="flex justify-between items-end mb-1">
                             <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest" id="label-url">Target / URL</label>
                             <select id="input-link-type" onchange="window.toggleLinkType()" class="text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400 bg-transparent outline-none cursor-pointer">
                                 <option value="external">External Link</option>
                                 <option value="internal">Internal App Page</option>
                             </select>
                         </div>
-                        <input id="input-url" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl outline-none dark:text-white transition-all" placeholder="https://...">
-                        <select id="input-internal-target" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl outline-none dark:text-white font-bold transition-all hidden cursor-pointer">
+                        <input id="input-url" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm sm:text-base outline-none dark:text-white transition-all" placeholder="https://...">
+                        <select id="input-internal-target" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm sm:text-base outline-none dark:text-white font-bold transition-all hidden cursor-pointer">
                             <option value="#volunteer">Volunteer Positions</option>
                             <option value="#planner">Pack Planner</option>
                             <option value="#committee">Committee Notes</option>
                         </select>
                     </div>
                     <div id="field-category" class="hidden">
-                        <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Category</label>
-                        <select id="input-category" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold outline-none focus:ring-4 ring-blue-900/10 dark:text-white transition-all appearance-none cursor-pointer"></select>
+                        <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Category</label>
+                        <select id="input-category" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm font-bold outline-none focus:ring-2 ring-blue-900/10 dark:text-white transition-all appearance-none cursor-pointer"></select>
                     </div>
 
                     <!-- Header Design Specialized Fields -->
                     <div id="field-header-type" class="hidden">
-                        <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Background Style</label>
-                        <select id="input-header-bg-type" onchange="window.updatePreview()" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold outline-none dark:text-white transition-all appearance-none cursor-pointer">
+                        <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Background Style</label>
+                        <select id="input-header-bg-type" onchange="window.updatePreview()" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm font-bold outline-none dark:text-white transition-all appearance-none cursor-pointer">
                             <option value="default">Default (Theme Managed)</option>
                             <option value="color">Solid Color</option>
                             <option value="image">Custom Image</option>
@@ -326,67 +326,76 @@
                     </div>
                     <div id="field-header-colors" class="hidden grid-cols-2 gap-4">
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Bg Color</label>
-                            <input type="color" id="input-header-bg-color" onchange="window.updatePreview()" class="w-full h-12 rounded-xl cursor-pointer">
+                            <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Bg Color</label>
+                            <input type="color" id="input-header-bg-color" onchange="window.updatePreview()" class="w-full h-10 rounded-xl cursor-pointer">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Border Color</label>
-                            <input type="color" id="input-header-border-color" onchange="window.updatePreview()" class="w-full h-12 rounded-xl cursor-pointer">
+                            <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Border Color</label>
+                            <input type="color" id="input-header-border-color" onchange="window.updatePreview()" class="w-full h-10 rounded-xl cursor-pointer">
                         </div>
                     </div>
                     <div id="field-header-image" class="hidden">
-                        <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Header Image URL</label>
-                        <input id="input-header-bg-image" oninput="window.updatePreview()" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl text-sm font-mono outline-none dark:text-white transition-all">
+                        <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Header Image URL</label>
+                        <input id="input-header-bg-image" oninput="window.updatePreview()" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs sm:text-sm font-mono outline-none dark:text-white transition-all">
                     </div>
 
                     <div id="field-image">
-                        <label id="label-image" class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Image Source URL</label>
-                        <input id="input-image" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl text-sm font-mono outline-none dark:text-white transition-all">
+                        <label id="label-image" class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Image Source URL</label>
+                        <input id="input-image" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs sm:text-sm font-mono outline-none dark:text-white transition-all">
                         
-                        <div id="app-icon-help-text" class="hidden text-xs font-bold text-slate-500 dark:text-slate-400 mt-3 leading-relaxed border-l-4 border-purple-500 pl-3">
+                        <div id="app-icon-help-text" class="hidden text-xs font-bold text-slate-500 dark:text-slate-400 mt-2 leading-relaxed border-l-4 border-purple-500 pl-3">
                             This image will be used for the browser tab and the mobile home screen shortcut. Leave blank to automatically use your main logo. Square images work best!
+                        </div>
+                    </div>
+
+                    <div id="field-link-bg" class="hidden">
+                        <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Tile Background Color</label>
+                        <div class="flex items-center gap-3 mt-1">
+                            <input type="checkbox" id="input-link-custom-bg-enable" onchange="document.getElementById('input-link-bg').disabled = !this.checked; window.updatePreview()" class="w-4 h-4 text-blue-600 rounded cursor-pointer">
+                            <label for="input-link-custom-bg-enable" class="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase cursor-pointer tracking-widest">Custom Color</label>
+                            <input type="color" id="input-link-bg" oninput="window.updatePreview()" class="w-10 h-8 rounded cursor-pointer border-none bg-transparent" disabled>
                         </div>
                     </div>
                     
                     <!-- Header Customization Settings -->
-                    <div id="field-header-text-colors" class="hidden flex-col gap-4 mt-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700">
-                        <div class="flex items-center gap-3">
-                            <input type="checkbox" id="input-override-colors" onchange="document.getElementById('color-pickers-wrapper').style.display = this.checked ? 'grid' : 'none'" class="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
-                            <label class="text-xs font-black uppercase text-slate-600 dark:text-slate-300 tracking-widest cursor-pointer" for="input-override-colors">Custom Font Colors</label>
+                    <div id="field-header-text-colors" class="hidden flex-col gap-3 mt-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <div class="flex items-center gap-2.5">
+                            <input type="checkbox" id="input-override-colors" onchange="document.getElementById('color-pickers-wrapper').style.display = this.checked ? 'grid' : 'none'" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+                            <label class="text-[11px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-widest cursor-pointer" for="input-override-colors">Custom Font Colors</label>
                         </div>
-                        <div id="color-pickers-wrapper" class="grid-cols-2 gap-4 mt-2" style="display: none;">
+                        <div id="color-pickers-wrapper" class="grid-cols-2 gap-4 mt-1" style="display: none;">
                             <div>
-                                <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Title Color</label>
-                                <input type="color" id="input-title-color" class="w-full h-12 rounded-xl cursor-pointer border-none bg-transparent">
+                                <label class="text-[9px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Title Color</label>
+                                <input type="color" id="input-title-color" class="w-full h-8 rounded cursor-pointer border-none bg-transparent">
                             </div>
                             <div>
-                                <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Subtitle Color</label>
-                                <input type="color" id="input-subtitle-color" class="w-full h-12 rounded-xl cursor-pointer border-none bg-transparent">
+                                <label class="text-[9px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Subtitle Color</label>
+                                <input type="color" id="input-subtitle-color" class="w-full h-8 rounded cursor-pointer border-none bg-transparent">
                             </div>
                         </div>
                     </div>
 
-                    <div id="field-header-link-settings" class="hidden flex-col space-y-4 mt-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700">
-                        <div class="flex items-center gap-3 mb-2">
-                            <input type="checkbox" id="input-show-header-link" class="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
-                            <label class="text-xs font-black uppercase text-slate-600 dark:text-slate-300 tracking-widest cursor-pointer" for="input-show-header-link">Show Header Link</label>
+                    <div id="field-header-link-settings" class="hidden flex-col space-y-3 mt-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <div class="flex items-center gap-2.5 mb-1">
+                            <input type="checkbox" id="input-show-header-link" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+                            <label class="text-[11px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-widest cursor-pointer" for="input-show-header-link">Show Header Link</label>
                         </div>
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Link Text</label>
-                            <input id="input-header-link-text" class="w-full p-3 bg-white dark:bg-slate-900 rounded-xl text-sm font-bold outline-none border border-slate-200 dark:border-slate-700 dark:text-white transition-all">
+                            <label class="text-[9px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Link Text</label>
+                            <input id="input-header-link-text" class="w-full p-2.5 bg-white dark:bg-slate-900 rounded-lg text-xs font-bold outline-none border border-slate-200 dark:border-slate-700 dark:text-white transition-all">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Link URL</label>
-                            <input id="input-header-link-url" class="w-full p-3 bg-white dark:bg-slate-900 rounded-xl text-sm font-bold outline-none border border-slate-200 dark:border-slate-700 dark:text-white transition-all">
+                            <label class="text-[9px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Link URL</label>
+                            <input id="input-header-link-url" class="w-full p-2.5 bg-white dark:bg-slate-900 rounded-lg text-xs font-bold outline-none border border-slate-200 dark:border-slate-700 dark:text-white transition-all">
                         </div>
                     </div>
                 </div>
                 <div class="flex flex-col items-center" id="field-preview">
                     <!-- Standard 1:1 Box or Wide Header Box -->
-                    <div id="preview-box" class="w-64 h-64 bg-slate-100 dark:bg-slate-800 rounded-[3rem] overflow-hidden relative border-8 border-slate-200 dark:border-slate-700 shadow-xl cursor-move active:cursor-grabbing" style="-webkit-mask-image: -webkit-radial-gradient(white, black); mask-image: radial-gradient(white, black);">
+                    <div id="preview-box" class="w-40 h-40 md:w-48 md:h-48 bg-slate-100 dark:bg-slate-800 rounded-[2rem] overflow-hidden relative border-[6px] border-slate-200 dark:border-slate-700 shadow-xl cursor-move active:cursor-grabbing" style="-webkit-mask-image: -webkit-radial-gradient(white, black); mask-image: radial-gradient(white, black);">
                         <img id="preview-img" src="" class="absolute inset-0 w-full h-full object-contain pointer-events-none">
                     </div>
-                    <div class="w-full mt-8 space-y-4" id="field-zoom">
+                    <div class="w-full mt-4 space-y-3" id="field-zoom">
                         <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             <span>Zoom</span>
                             <span id="zoom-val" class="text-blue-600 font-bold">1.0x</span>
@@ -395,95 +404,95 @@
                     </div>
                 </div>
                 <div class="col-span-1 md:col-span-2 flex justify-end mt-2">
-                    <button onclick="window.saveChanges()" id="modal-save-btn" class="w-full md:w-auto px-10 py-5 bg-blue-900 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-blue-800 transition-all active:scale-95">Save Changes</button>
+                    <button onclick="window.saveChanges()" id="modal-save-btn" class="w-full md:w-auto px-8 py-3.5 bg-blue-900 text-white rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-blue-800 transition-all active:scale-95 text-xs sm:text-sm">Save Changes</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Planner Edit Modal -->
-    <div id="planner-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[150] hidden items-center justify-center p-6 overflow-y-auto">
-        <div class="bg-white dark:bg-slate-900 rounded-[3rem] w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl modal-animate border-b-[16px] border-yellow-500 my-auto">
-            <div class="bg-slate-800 p-6 text-white flex justify-between items-center border-b border-slate-700">
-                <h3 id="plan-modal-title" class="text-xl font-black uppercase tracking-widest flex items-center gap-2"><i data-lucide="calendar" class="w-5 h-5 text-yellow-500"></i> Event Details</h3>
-                <button onclick="window.closePlannerModal()" class="p-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="x"></i></button>
+    <div id="planner-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[150] hidden items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl modal-animate border-b-8 border-yellow-500 my-auto">
+            <div class="bg-slate-800 p-4 sm:p-5 text-white flex justify-between items-center border-b border-slate-700">
+                <h3 id="plan-modal-title" class="text-lg font-black uppercase tracking-widest flex items-center gap-2"><i data-lucide="calendar" class="w-5 h-5 text-yellow-500"></i> Event Details</h3>
+                <button onclick="window.closePlannerModal()" class="p-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
-            <div class="p-8 space-y-6">
+            <div class="p-5 sm:p-6 md:p-8 space-y-4">
                 <!-- Date & Time Row -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Date</label>
-                        <input type="date" id="plan-date" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold outline-none focus:ring-4 ring-blue-900/10 dark:text-white transition-all cursor-pointer">
+                        <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Date</label>
+                        <input type="date" id="plan-date" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm outline-none focus:ring-2 ring-blue-900/10 dark:text-white transition-all cursor-pointer">
                     </div>
                     <div>
-                        <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Time</label>
-                        <select id="plan-time" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold outline-none focus:ring-4 ring-blue-900/10 dark:text-white transition-all appearance-none cursor-pointer"></select>
+                        <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Time</label>
+                        <select id="plan-time" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm outline-none focus:ring-2 ring-blue-900/10 dark:text-white transition-all appearance-none cursor-pointer"></select>
                     </div>
                 </div>
 
                 <!-- Configurable Dropdowns Row -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <div class="flex justify-between items-end mb-2">
+                        <div class="flex justify-between items-end mb-1">
                             <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Event Type</label>
                             <div class="flex gap-1">
                                 <button onclick="window.manageArray('eventTypes', 'add')" class="text-blue-500 hover:text-blue-700 p-1"><i data-lucide="plus-circle" class="w-4 h-4"></i></button>
                                 <button onclick="window.manageArray('eventTypes', 'remove')" class="text-red-400 hover:text-red-600 p-1"><i data-lucide="minus-circle" class="w-4 h-4"></i></button>
                             </div>
                         </div>
-                        <select id="plan-type" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold outline-none focus:ring-4 ring-blue-900/10 dark:text-white transition-all appearance-none cursor-pointer"></select>
+                        <select id="plan-type" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm outline-none focus:ring-2 ring-blue-900/10 dark:text-white transition-all appearance-none cursor-pointer"></select>
                     </div>
                     <div>
-                        <div class="flex justify-between items-end mb-2">
+                        <div class="flex justify-between items-end mb-1">
                             <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Lead Scouter</label>
                             <div class="flex gap-1">
                                 <button onclick="window.manageArray('leaders', 'add')" class="text-blue-500 hover:text-blue-700 p-1"><i data-lucide="plus-circle" class="w-4 h-4"></i></button>
                                 <button onclick="window.manageArray('leaders', 'remove')" class="text-red-400 hover:text-red-600 p-1"><i data-lucide="minus-circle" class="w-4 h-4"></i></button>
                             </div>
                         </div>
-                        <select id="plan-leader" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold outline-none focus:ring-4 ring-blue-900/10 dark:text-white transition-all appearance-none cursor-pointer"></select>
+                        <select id="plan-leader" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm outline-none focus:ring-2 ring-blue-900/10 dark:text-white transition-all appearance-none cursor-pointer"></select>
                     </div>
                 </div>
 
                 <!-- Title & Details -->
                 <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Event Title</label>
-                    <input id="plan-title" type="text" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold text-lg outline-none focus:ring-4 ring-blue-900/10 dark:text-white transition-all" placeholder="e.g. Pinewood Derby Weigh-in">
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Event Title</label>
+                    <input id="plan-title" type="text" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm outline-none focus:ring-2 ring-blue-900/10 dark:text-white transition-all" placeholder="e.g. Pinewood Derby Weigh-in">
                 </div>
                 <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Event Details</label>
-                    <textarea id="plan-details" rows="4" oninput="window.autoResizeTextarea(this)" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl outline-none focus:ring-4 ring-blue-900/10 dark:text-white transition-colors resize-none overflow-hidden" placeholder="Provide details, location, requirements..."></textarea>
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Event Details</label>
+                    <textarea id="plan-details" rows="3" oninput="window.autoResizeTextarea(this)" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 ring-blue-900/10 dark:text-white transition-colors resize-none overflow-hidden" placeholder="Provide details, location, requirements..."></textarea>
                 </div>
 
-                <div class="flex justify-end mt-4">
-                    <button onclick="window.savePlan()" class="w-full px-10 py-5 bg-blue-900 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-blue-800 transition-all active:scale-95">Save Event</button>
+                <div class="flex justify-end mt-2">
+                    <button onclick="window.savePlan()" class="w-full px-8 py-3.5 bg-blue-900 text-white rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-blue-800 transition-all active:scale-95 text-sm">Save Event</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Volunteer Portal Edit Modal -->
-    <div id="volunteer-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[150] hidden items-center justify-center p-6 overflow-y-auto">
-        <div class="bg-white dark:bg-slate-900 rounded-[3rem] w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl modal-animate border-b-[16px] border-red-600 my-auto">
-            <div class="bg-slate-800 p-6 text-white flex justify-between items-center border-b border-slate-700">
-                <h3 class="text-xl font-black uppercase tracking-widest flex items-center gap-2"><i data-lucide="user-plus" class="w-5 h-5 text-red-500"></i> Edit Role</h3>
-                <button onclick="window.closeVolunteerModal()" class="p-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="x"></i></button>
+    <div id="volunteer-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[150] hidden items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl modal-animate border-b-8 border-red-600 my-auto">
+            <div class="bg-slate-800 p-4 sm:p-5 text-white flex justify-between items-center border-b border-slate-700">
+                <h3 class="text-lg font-black uppercase tracking-widest flex items-center gap-2"><i data-lucide="user-plus" class="w-5 h-5 text-red-500"></i> Edit Role</h3>
+                <button onclick="window.closeVolunteerModal()" class="p-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
-            <div class="p-8 space-y-6">
+            <div class="p-5 sm:p-6 md:p-8 space-y-4">
                 <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Role Name *</label>
-                    <input id="vol-position" type="text" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold text-lg outline-none focus:ring-4 ring-red-900/10 dark:text-white transition-all" placeholder="e.g. Cubmaster">
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Role Name *</label>
+                    <input id="vol-position" type="text" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm outline-none focus:ring-2 ring-red-900/10 dark:text-white transition-all" placeholder="e.g. Cubmaster">
                 </div>
                 <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Short Description</label>
-                    <input id="vol-description" type="text" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl outline-none focus:ring-4 ring-red-900/10 dark:text-white transition-all" placeholder="e.g. The guiding leader of the Pack">
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Short Description</label>
+                    <input id="vol-description" type="text" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 ring-red-900/10 dark:text-white transition-all" placeholder="e.g. The guiding leader of the Pack">
                 </div>
                 <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Responsibilities</label>
-                    <textarea id="vol-responsibilities" rows="5" oninput="window.autoResizeTextarea(this)" class="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl outline-none focus:ring-4 ring-red-900/10 dark:text-white transition-colors resize-none overflow-hidden" placeholder="Enter responsibilities (Type each new responsibility on a new line to create bullets)"></textarea>
+                    <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block tracking-widest">Responsibilities</label>
+                    <textarea id="vol-responsibilities" rows="4" oninput="window.autoResizeTextarea(this)" class="w-full p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 ring-red-900/10 dark:text-white transition-colors resize-none overflow-hidden" placeholder="Enter responsibilities (Type each new responsibility on a new line to create bullets)"></textarea>
                 </div>
-                <div class="flex justify-end mt-4">
-                    <button onclick="window.saveVolunteer()" class="w-full px-10 py-5 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-red-700 transition-all active:scale-95">Save Role</button>
+                <div class="flex justify-end mt-2">
+                    <button onclick="window.saveVolunteer()" class="w-full px-8 py-3.5 bg-red-600 text-white rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-red-700 transition-all active:scale-95 text-sm">Save Role</button>
                 </div>
             </div>
         </div>
@@ -588,7 +597,7 @@
                     <textarea id="comm-notes" rows="2" oninput="window.autoResizeTextarea(this); window.triggerCommAutoSave()" class="w-full p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 ring-blue-900/20 dark:text-white transition-colors resize-none overflow-hidden" placeholder="Additional notes..."></textarea>
                 </div>
 
-                <div class="flex justify-end mt-4">
+                <div class="flex justify-end mt-2">
                     <button onclick="window.closeCommitteeModal()" class="w-full sm:w-auto px-8 py-3 bg-slate-800 text-white rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-slate-700 transition-all active:scale-95 text-xs border border-slate-600">Close & Save</button>
                 </div>
             </div>
@@ -639,7 +648,7 @@
 
         let categories = JSON.parse(localStorage.getItem('scout_categories')) || [{ id: 'default', title: 'General Resources' }];
         let links = JSON.parse(localStorage.getItem('scout_links')) || [
-            { id: 1, title: 'Scoutbook', url: 'https://scoutbook.scouting.org/', img: '', zoom: 1, x: 0, y: 0, categoryId: 'default' }
+            { id: 1, title: 'Scoutbook', url: 'https://scoutbook.scouting.org/', img: '', zoom: 1, x: 0, y: 0, categoryId: 'default', customBg: false, bgColor: '#ffffff' }
         ];
         let settings = { ...defaultSettings, ...(JSON.parse(localStorage.getItem('scout_settings')) || {}) };
 
@@ -649,7 +658,6 @@
         let eventTypes = JSON.parse(localStorage.getItem('scout_event_types')) || ['Pack Meeting', 'Den Meeting', 'Campout', 'Blue & Gold', 'Pinewood Derby'];
         let leaders = JSON.parse(localStorage.getItem('scout_leaders')) || ['Cubmaster', 'Den Leader', 'Committee Chair'];
         
-        // Updated default data to be roles only
         let volunteers = JSON.parse(localStorage.getItem('scout_volunteers')) || [
             { id: 1, position: 'Cubmaster', description: 'The guiding leader of the Pack.', responsibilities: 'Plan monthly pack meetings\nCoordinate with committee chair\nEnsure safety and BSA guidelines are met' },
             { id: 2, position: 'Committee Chair', description: 'Leads the administrative side of the pack.', responsibilities: 'Organize committee meetings\nManage recharter\nOversee parent coordinators' }
@@ -683,7 +691,6 @@
             if (typeof window.__firebase_config !== 'undefined') fbConfig = JSON.parse(window.__firebase_config); 
         } catch (e) {}
 
-        // Use your Firebase config when running outside of Canvas (like StackBlitz)
         if (!fbConfig || !fbConfig.apiKey) {
             fbConfig = {
                 apiKey: "AIzaSyDco3YdquBXu90sItwIJ9GLvof8_fvUhzo",
@@ -722,16 +729,11 @@
                                 const data = snap.data();
                                 const cloudUpdatedAt = data.updatedAt || 0;
 
-                                // Offline-First Conflict Resolution:
-                                // If our local edits are newer than the cloud by a margin (e.g. recent failure to sync),
-                                // DO NOT let the cloud overwrite our local state. Force a re-sync instead.
                                 if (localUpdatedAt > cloudUpdatedAt + 2000) {
-                                    console.warn("Local data is significantly newer than incoming cloud data. Initiating protective sync...");
                                     window.syncToCloud();
                                     return;
                                 }
 
-                                // Otherwise, accept the incoming cloud data as the source of truth
                                 localUpdatedAt = cloudUpdatedAt;
                                 localStorage.setItem('scout_updatedAt', localUpdatedAt.toString());
 
@@ -755,7 +757,6 @@
             if (!useFirebase || !currentUser || isSyncing) return;
             isSyncing = true;
             try {
-                // Advance the local timestamp to stake our claim on the newest data
                 localUpdatedAt = Date.now();
                 localStorage.setItem('scout_updatedAt', localUpdatedAt.toString());
 
@@ -809,7 +810,6 @@
                     if(favicon) favicon.href = dataUrl;
                     if(appleIcon) appleIcon.href = dataUrl;
                 } catch(e) {
-                    console.warn("CORS prevented dynamic favicon generation. Using raw URL.", e);
                     if(favicon) favicon.href = url;
                     if(appleIcon) appleIcon.href = url;
                 }
@@ -866,7 +866,6 @@
             const headerBgLayer = document.getElementById('header-bg-layer');
             const headerBgImg = document.getElementById('header-bg-img');
 
-            // Reset dynamic styles first
             mainHeader.style.backgroundColor = '';
             mainHeader.style.borderColor = '';
             headerBgLayer.classList.add('hidden');
@@ -883,7 +882,6 @@
                 headerBgImg.style.transform = `translate(${settings.headerBgX || 0}%, ${settings.headerBgY || 0}%) scale(${settings.headerBgZoom || 1})`;
             }
 
-            // Dynamic Tab / Mobile Home Screen Title Update
             document.title = settings.title || 'Scout Hub';
             const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
             if (appleTitle) appleTitle.setAttribute("content", settings.title || 'Scout Hub');
@@ -891,7 +889,6 @@
             const iconUrl = settings.tabIconUrl || settings.logo || 'https://www.scouting.org/wp-content/uploads/2018/05/cub-scouts-logo.png';
             window.applyDynamicFavicon(iconUrl, settings.tabIconZoom || 1, settings.tabIconX || 0, settings.tabIconY || 0);
 
-            // Nav Visibility & State
             if (isLeader || isAdmin) {
                 leaderNav.classList.remove('hidden');
                 const tabs = ['links', 'planner', 'committee', 'volunteer'];
@@ -920,7 +917,6 @@
                 window.renderLinksView(container);
             }
 
-            // UI Buttons (Theme, Home & Auth)
             const isDark = document.documentElement.classList.contains('dark');
             document.getElementById('theme-btn').innerHTML = isDark ? '<i data-lucide="sun" class="w-4 h-4 md:w-5 md:h-5"></i>' : '<i data-lucide="moon" class="w-4 h-4 md:w-5 md:h-5"></i>';
 
@@ -983,7 +979,6 @@
 
             if (window.lucide) window.lucide.createIcons();
             
-            // Backup local state
             localStorage.setItem('scout_links', JSON.stringify(links));
             localStorage.setItem('scout_settings', JSON.stringify(settings));
             localStorage.setItem('scout_categories', JSON.stringify(categories));
@@ -1315,9 +1310,8 @@
             
             currentCommEditId = id;
             const note = committeeNotes.find(n => n.id === id);
-            currentCommType = note.type || 'committee'; // Ensures older notes default to committee
+            currentCommType = note.type || 'committee';
             
-            // Populate form
             document.getElementById('comm-date').value = note.date || '';
             document.getElementById('comm-attendees').value = note.attendees || '';
             document.getElementById('comm-cash').value = note.cashOnHand || '';
@@ -1334,7 +1328,6 @@
             document.getElementById('comm-rtcomments').value = note.rtComments || '';
             document.getElementById('comm-notes').value = note.notes || '';
             
-            // Adjust UI for Roundtable vs Committee
             const isRT = currentCommType === 'roundtable';
             document.getElementById('comm-modal-title').innerHTML = isRT 
                 ? '<i data-lucide="users" class="w-5 h-5 text-yellow-500"></i> Roundtable Notes'
@@ -1353,7 +1346,6 @@
             document.getElementById('committee-modal').classList.replace('hidden', 'flex');
             if (window.lucide) window.lucide.createIcons();
 
-            // Auto-resize newly populated textareas
             setTimeout(() => {
                 document.querySelectorAll('#committee-modal textarea').forEach(el => {
                     if(el.closest('div').style.display !== 'none') window.autoResizeTextarea(el);
@@ -1401,8 +1393,6 @@
                     
                     if (useFirebase) {
                         window.syncToCloud();
-                    } else {
-                        // Silent local success
                     }
                     
                     statusEl.innerText = 'Saved';
@@ -1419,7 +1409,6 @@
             }
         }
 
-        // --- Committee PDF Generation Engine ---
         window.getPDFTemplateHTML = function(note) {
             const d = new Date(`${note.date}T00:00:00`);
             const dateStr = isNaN(d) ? note.date : d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -1663,6 +1652,8 @@
                     const isInternal = link.url && link.url.startsWith('#');
                     const targetUrl = isEditing ? 'javascript:void(0)' : (isInternal ? 'javascript:void(0)' : link.url);
                     const onclickAttr = (!isEditing && isInternal) ? `onclick="window.switchView('${link.url.substring(1)}'); return false;"` : '';
+                    
+                    const bgStyle = link.customBg && link.bgColor ? `background-color: ${link.bgColor};` : '';
 
                     card.innerHTML = `
                         ${isEditing ? `
@@ -1672,10 +1663,10 @@
                             </div>
                         ` : ''}
                         <a href="${targetUrl}" ${onclickAttr} target="${isInternal ? '_self' : '_blank'}" class="scout-card p-3 md:p-4 flex flex-col items-center justify-start text-center block h-full pointer-events-none">
-                            <div class="image-viewport mb-3">
+                            <div class="image-viewport mb-2 sm:mb-3" style="${bgStyle}">
                                 <img src="${link.img || 'https://www.scouting.org/wp-content/uploads/2018/05/cub-scouts-logo.png'}" style="transform: translate(${link.x || 0}%, ${link.y || 0}%) scale(${link.zoom || 1}); opacity: ${link.img ? 1 : 0.1}" class="absolute inset-0 w-full h-full object-contain pointer-events-none">
                             </div>
-                            <span class="text-blue-900 dark:text-slate-200 font-extrabold uppercase tracking-widest text-[9px] sm:text-[10px] line-clamp-2 leading-tight flex items-center gap-1">
+                            <span class="text-blue-900 dark:text-slate-200 font-extrabold uppercase tracking-widest text-[9px] sm:text-[10px] line-clamp-2 leading-tight flex items-center gap-1 mt-auto">
                                 ${link.title}
                             </span>
                         </a>
@@ -1773,8 +1764,8 @@
         window.togglePasswordVisibility = function() {
             const input = document.getElementById('login-password');
             const btn = document.getElementById('toggle-password-btn');
-            if (input.type === 'password') { input.type = 'text'; btn.innerHTML = '<i data-lucide="eye-off" class="w-5 h-5"></i>'; }
-            else { input.type = 'password'; btn.innerHTML = '<i data-lucide="eye" class="w-5 h-5"></i>'; }
+            if (input.type === 'password') { input.type = 'text'; btn.innerHTML = '<i data-lucide="eye-off" class="w-4 h-4"></i>'; }
+            else { input.type = 'password'; btn.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i>'; }
             if (window.lucide) window.lucide.createIcons();
         };
 
@@ -1932,10 +1923,11 @@
                   fHeaderColors = document.getElementById('field-header-colors'),
                   fHeaderImage = document.getElementById('field-header-image'),
                   fHeaderTextColors = document.getElementById('field-header-text-colors'),
-                  fHeaderLinkSettings = document.getElementById('field-header-link-settings');
+                  fHeaderLinkSettings = document.getElementById('field-header-link-settings'),
+                  fLinkBg = document.getElementById('field-link-bg');
             
             // Reset all visibility defaults
-            [fTitle, fUrl, fImg, fCat, fPrev, fZoom, fHeaderType, fHeaderColors, fHeaderImage, fHeaderTextColors, fHeaderLinkSettings].forEach(el => {
+            [fTitle, fUrl, fImg, fCat, fPrev, fZoom, fHeaderType, fHeaderColors, fHeaderImage, fHeaderTextColors, fHeaderLinkSettings, fLinkBg].forEach(el => {
                 if(el) el.classList.remove('hidden');
             });
             if (fHelp) fHelp.classList.add('hidden');
@@ -1945,36 +1937,30 @@
             fBtn.classList.replace('w-auto', 'w-full');
 
             const previewBox = document.getElementById('preview-box');
+            previewBox.className = 'w-40 h-40 md:w-48 md:h-48 bg-slate-100 dark:bg-slate-800 rounded-[2rem] overflow-hidden relative border-[6px] border-slate-200 dark:border-slate-700 shadow-xl cursor-move active:cursor-grabbing';
+            previewBox.style.webkitMaskImage = '-webkit-radial-gradient(white, black)';
+            previewBox.style.maskImage = 'radial-gradient(white, black)';
 
             // Apply specific hidden states based on the editor mode
             if (type === 'category') {
                 mGrid.classList.remove('md:grid-cols-2'); mGrid.classList.add('grid-cols-1');
-                [fUrl, fImg, fCat, fPrev, fZoom, fHeaderType, fHeaderColors, fHeaderImage, fHeaderTextColors, fHeaderLinkSettings].forEach(el => { if(el) el.classList.add('hidden'); });
+                [fUrl, fImg, fCat, fPrev, fZoom, fHeaderType, fHeaderColors, fHeaderImage, fHeaderTextColors, fHeaderLinkSettings, fLinkBg].forEach(el => { if(el) el.classList.add('hidden'); });
                 fBtn.classList.replace('w-full', 'w-auto');
             } else if (type === 'link') {
                 [fHeaderType, fHeaderColors, fHeaderImage, fHeaderTextColors, fHeaderLinkSettings].forEach(el => { if(el) el.classList.add('hidden'); });
-                previewBox.className = 'w-64 h-64 bg-slate-100 dark:bg-slate-800 rounded-[3rem] overflow-hidden relative border-8 border-slate-200 dark:border-slate-700 shadow-xl cursor-move active:cursor-grabbing';
-                previewBox.style.webkitMaskImage = '-webkit-radial-gradient(white, black)';
-                previewBox.style.maskImage = 'radial-gradient(white, black)';
             } else if (type === 'header') {
-                [fCat, fHeaderType, fHeaderColors, fHeaderImage].forEach(el => { if(el) el.classList.add('hidden'); });
+                [fCat, fHeaderType, fHeaderColors, fHeaderImage, fLinkBg].forEach(el => { if(el) el.classList.add('hidden'); });
                 if (fHeaderTextColors) { fHeaderTextColors.classList.add('flex'); fHeaderTextColors.classList.remove('hidden'); }
                 if (fHeaderLinkSettings) { fHeaderLinkSettings.classList.add('flex'); fHeaderLinkSettings.classList.remove('hidden'); }
-                previewBox.className = 'w-64 h-64 bg-slate-100 dark:bg-slate-800 rounded-[3rem] overflow-hidden relative border-8 border-slate-200 dark:border-slate-700 shadow-xl cursor-move active:cursor-grabbing';
-                previewBox.style.webkitMaskImage = '-webkit-radial-gradient(white, black)';
-                previewBox.style.maskImage = 'radial-gradient(white, black)';
             } else if (type === 'app-icon') {
-                [fTitle, fUrl, fCat, fHeaderType, fHeaderColors, fHeaderImage, fHeaderTextColors, fHeaderLinkSettings].forEach(el => { if(el) el.classList.add('hidden'); });
+                [fTitle, fUrl, fCat, fHeaderType, fHeaderColors, fHeaderImage, fHeaderTextColors, fHeaderLinkSettings, fLinkBg].forEach(el => { if(el) el.classList.add('hidden'); });
                 if (fHelp) fHelp.classList.remove('hidden');
-                previewBox.className = 'w-64 h-64 bg-slate-100 dark:bg-slate-800 rounded-[3rem] overflow-hidden relative border-8 border-slate-200 dark:border-slate-700 shadow-xl cursor-move active:cursor-grabbing';
-                previewBox.style.webkitMaskImage = '-webkit-radial-gradient(white, black)';
-                previewBox.style.maskImage = 'radial-gradient(white, black)';
             } else if (type === 'header-design') {
-                [fTitle, fUrl, fCat, fImg].forEach(el => { if(el) el.classList.add('hidden'); });
+                [fTitle, fUrl, fCat, fImg, fLinkBg].forEach(el => { if(el) el.classList.add('hidden'); });
                 if (fHeaderTextColors) { fHeaderTextColors.classList.add('flex'); fHeaderTextColors.classList.remove('hidden'); }
                 if (fHeaderLinkSettings) { fHeaderLinkSettings.classList.add('flex'); fHeaderLinkSettings.classList.remove('hidden'); }
-                // Change preview box to wide format for header previews
-                previewBox.className = 'w-full h-32 bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden relative border-8 border-slate-200 dark:border-slate-700 shadow-xl cursor-move active:cursor-grabbing';
+                
+                previewBox.className = 'w-full h-24 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden relative border-[6px] border-slate-200 dark:border-slate-700 shadow-xl cursor-move active:cursor-grabbing';
                 previewBox.style.webkitMaskImage = 'none';
                 previewBox.style.maskImage = 'none';
             }
@@ -2064,6 +2050,10 @@
             document.getElementById('input-image').value = link.img; 
             document.getElementById('input-zoom').value = link.zoom || 1;
             
+            document.getElementById('input-link-custom-bg-enable').checked = !!link.customBg;
+            document.getElementById('input-link-bg').disabled = !link.customBg;
+            document.getElementById('input-link-bg').value = link.bgColor || '#ffffff';
+            
             document.getElementById('input-link-type').parentElement.classList.remove('hidden');
 
             const isInternal = link.url && link.url.startsWith('#');
@@ -2081,7 +2071,7 @@
         };
 
         window.addNewLink = function(categoryId) {
-            const newId = Date.now(); links.push({ id: newId, title: 'New Link', url: '', img: '', zoom: 1, x: 0, y: 0, categoryId: categoryId }); window.editLink(newId);
+            const newId = Date.now(); links.push({ id: newId, title: 'New Link', url: '', img: '', zoom: 1, x: 0, y: 0, categoryId: categoryId, customBg: false, bgColor: '#ffffff' }); window.editLink(newId);
         };
 
         window.deleteLink = function(id) {
@@ -2117,7 +2107,6 @@
                 const bgImage = document.getElementById('input-header-bg-image').value;
                 const borderColor = document.getElementById('input-header-border-color').value;
 
-                // Toggle field visibility within the modal based on chosen type
                 document.getElementById('field-header-colors').classList.remove('hidden');
                 document.getElementById('input-header-bg-color').parentElement.style.display = bgType === 'color' ? 'block' : 'none';
                 document.getElementById('field-header-image').style.display = bgType === 'image' ? 'block' : 'none';
@@ -2135,7 +2124,6 @@
                     img.className = "absolute inset-0 w-full h-full object-cover pointer-events-none";
                     img.style.transform = `translate(${settings.headerBgX || 0}%, ${settings.headerBgY || 0}%) scale(${zoom})`;
                 } else {
-                    // Default
                     previewBox.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff';
                     img.style.display = 'none';
                 }
@@ -2148,6 +2136,14 @@
                     let currentX = currentEditType === 'app-icon' ? (obj.tabIconX || 0) : (obj.x || 0);
                     let currentY = currentEditType === 'app-icon' ? (obj.tabIconY || 0) : (obj.y || 0);
                     img.style.transform = `translate(${currentX}%, ${currentY}%) scale(${zoom})`;
+                }
+
+                if (currentEditType === 'link') {
+                    const useBg = document.getElementById('input-link-custom-bg-enable').checked;
+                    const bgCol = document.getElementById('input-link-bg').value;
+                    previewBox.style.backgroundColor = useBg ? bgCol : (document.documentElement.classList.contains('dark') ? '#1e293b' : '#f1f5f9');
+                } else if (currentEditType === 'app-icon' || currentEditType === 'header') {
+                    previewBox.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#1e293b' : '#f1f5f9';
                 }
             }
             
@@ -2177,7 +2173,6 @@
                 settings.headerBorderColor = document.getElementById('input-header-border-color').value;
                 settings.headerBgImage = document.getElementById('input-header-bg-image').value;
                 settings.headerBgZoom = parseFloat(document.getElementById('input-zoom').value) || 1;
-                // Note: X and Y are updated natively by the mouse drag handler
                 
                 settings.overrideColors = document.getElementById('input-override-colors').checked;
                 settings.titleColor = document.getElementById('input-title-color').value;
@@ -2200,15 +2195,18 @@
                         safeUrl = document.getElementById('input-url').value.trim(); 
                         if (safeUrl && !safeUrl.startsWith('http') && !safeUrl.startsWith('#')) safeUrl = 'https://' + safeUrl;
                     }
-                    link.url = safeUrl; link.categoryId = document.getElementById('input-category').value; link.img = document.getElementById('input-image').value; link.zoom = document.getElementById('input-zoom').value;
+                    link.url = safeUrl; 
+                    link.categoryId = document.getElementById('input-category').value; 
+                    link.img = document.getElementById('input-image').value; 
+                    link.zoom = document.getElementById('input-zoom').value;
+                    link.customBg = document.getElementById('input-link-custom-bg-enable').checked;
+                    link.bgColor = document.getElementById('input-link-bg').value;
                 }
             }
             window.closeModal(); 
             window.render(); 
             if (useFirebase) {
                 window.syncToCloud(); 
-            } else {
-                // If cloud sync is disabled, saving just uses the silent localStorage backup built into render()
             }
         };
 
