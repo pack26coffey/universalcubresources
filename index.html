@@ -1970,7 +1970,9 @@
                 previewBox.style.webkitMaskImage = '-webkit-radial-gradient(white, black)';
                 previewBox.style.maskImage = 'radial-gradient(white, black)';
             } else if (type === 'header-design') {
-                [fTitle, fUrl, fCat, fImg, fHeaderTextColors, fHeaderLinkSettings].forEach(el => { if(el) el.classList.add('hidden'); });
+                [fTitle, fUrl, fCat, fImg].forEach(el => { if(el) el.classList.add('hidden'); });
+                if (fHeaderTextColors) { fHeaderTextColors.classList.add('flex'); fHeaderTextColors.classList.remove('hidden'); }
+                if (fHeaderLinkSettings) { fHeaderLinkSettings.classList.add('flex'); fHeaderLinkSettings.classList.remove('hidden'); }
                 // Change preview box to wide format for header previews
                 previewBox.className = 'w-full h-32 bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden relative border-8 border-slate-200 dark:border-slate-700 shadow-xl cursor-move active:cursor-grabbing';
                 previewBox.style.webkitMaskImage = 'none';
@@ -2038,6 +2040,15 @@
             document.getElementById('input-header-border-color').value = settings.headerBorderColor || '#facc15';
             document.getElementById('input-header-bg-image').value = settings.headerBgImage || '';
             document.getElementById('input-zoom').value = settings.headerBgZoom || 1;
+            
+            document.getElementById('input-override-colors').checked = !!settings.overrideColors;
+            document.getElementById('color-pickers-wrapper').style.display = settings.overrideColors ? 'grid' : 'none';
+            document.getElementById('input-title-color').value = settings.titleColor || '#1e3a8a';
+            document.getElementById('input-subtitle-color').value = settings.subtitleColor || '#64748b';
+            
+            document.getElementById('input-show-header-link').checked = settings.showHeaderLink !== false;
+            document.getElementById('input-header-link-text').value = settings.headerLinkText || 'my.scouting.org';
+            document.getElementById('input-header-link-url').value = settings.headerLinkUrl || 'https://my.scouting.org';
             
             setModalVisibility('header-design'); 
             window.updatePreview(); 
@@ -2167,6 +2178,14 @@
                 settings.headerBgImage = document.getElementById('input-header-bg-image').value;
                 settings.headerBgZoom = parseFloat(document.getElementById('input-zoom').value) || 1;
                 // Note: X and Y are updated natively by the mouse drag handler
+                
+                settings.overrideColors = document.getElementById('input-override-colors').checked;
+                settings.titleColor = document.getElementById('input-title-color').value;
+                settings.subtitleColor = document.getElementById('input-subtitle-color').value;
+                
+                settings.showHeaderLink = document.getElementById('input-show-header-link').checked;
+                settings.headerLinkText = document.getElementById('input-header-link-text').value;
+                settings.headerLinkUrl = document.getElementById('input-header-link-url').value;
             } else if (currentEditType === 'category') {
                 const cat = categories.find(c => c.id === currentEditId); if (cat) cat.title = document.getElementById('input-title').value || 'Unnamed Category';
             } else if (currentEditType === 'link') {
