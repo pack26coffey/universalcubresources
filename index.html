@@ -724,7 +724,7 @@
     </div>
 
 
-    <!-- Firebase Realtime Sync Logic -->
+    <!-- Firebase Realtime Sync & Render Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -772,27 +772,25 @@
         ];
         let settings = { ...defaultSettings, ...(JSON.parse(localStorage.getItem('scout_settings')) || {}) };
 
-        // Planner, Committee & Roles State
         let plans = JSON.parse(localStorage.getItem('scout_plans')) || [];
         let committeeNotes = JSON.parse(localStorage.getItem('scout_committee')) || [];
         let eventTypes = JSON.parse(localStorage.getItem('scout_event_types')) || ['Pack Meeting', 'Den Meeting', 'Campout', 'Blue & Gold', 'Pinewood Derby'];
         let leaders = JSON.parse(localStorage.getItem('scout_leaders')) || ['Cubmaster', 'Den Leader', 'Committee Chair'];
         let volunteers = JSON.parse(localStorage.getItem('scout_volunteers')) || [];
 
-        // --- NEW RESOURCES STATE ---
         let recipes = JSON.parse(localStorage.getItem('scout_recipes')) || [];
         let ceremonies = JSON.parse(localStorage.getItem('scout_ceremonies')) || [];
         let skits = JSON.parse(localStorage.getItem('scout_skits')) || [];
         let games = JSON.parse(localStorage.getItem('scout_games')) || [];
 
         let expandedCommNotes = []; 
-        let expandedResources = []; // stores IDs of expanded bubbles for recipes, ceremonies, etc.
-        let recipeFilter = { category: 'All', cost: 0 }; // 0 means all costs
+        let expandedResources = []; 
+        let recipeFilter = { category: 'All', cost: 0 }; 
         
         let currentEditId = null;
         let currentEditType = null; 
         let currentResType = null;
-        let currentResCost = 0; // for modal
+        let currentResCost = 0;
 
         let isDragging = false;
         let startX, startY;
@@ -909,658 +907,1401 @@
             }
         };
 
-        // --- Shared Resource Views logic ---
-        window.toggleResourceBubble = function(id) {
-            if (expandedResources.includes(id)) {
-                expandedResources = expandedResources.filter(n => n !== id);
-            } else {
-                expandedResources.push(id);
-            }
-            window.render();
+        // --- Core Rendering & UI ---
+        window.applyDynamicFavicon = function(url, zoom, x, y) {
+            const favicon = document.getElementById('dynamic-favicon');
+            const appleIcon = document.getElementById('dynamic-apple-icon');
+            if (!favicon && !appleIcon) return;
+
+            const size = 192; 
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            const img = new Image();
+            img.crossOrigin = "anonymous"; 
+            img.onload = () => {
+                ctx.clearRect(0, 0, size, size);
+                
+                const imgAspect = img.width / img.height;
+                let drawW = size;
+                let drawH = size;
+                if (imgAspect > 1) { drawH = size / imgAspect; } else { drawW = size * imgAspect; }
+
+                const finalZoom = zoom || 1;
+                const finalX = (x || 0) / 100 * size;
+                const finalY = (y || 0) / 100 * size;
+
+                ctx.translate(size/2 + finalX, size/2 + finalY);
+                ctx.scale(finalZoom, finalZoom);
+                ctx.drawImage(img, -drawW/2, -drawH/2, drawW, drawH);
+
+                try {
+                    const dataUrl = canvas.toDataURL('image/png');
+                    if(favicon) favicon.href = dataUrl;
+                    if(appleIcon) appleIcon.href = dataUrl;
+                } catch(e) {
+                    if(favicon) favicon.href = url;
+                    if(appleIcon) appleIcon.href = url;
+                }
+            };
+            img.onerror = () => {
+                if(favicon) favicon.href = url;
+                if(appleIcon) appleIcon.href = url;
+            };
+            img.src = url;
         };
 
-        window.formatBulletPoints = function(text, forceLi = false) {
-            if (!text) return '';
-            const lines = text.split('\n');
-            let inList = false;
-            let result = '';
+        window.render = function() {
+            const container = document.getElementById('main-container');
+            const leaderNav = document.getElementById('leader-nav');
             
-            if (forceLi) {
-                result += '<ul class="list-disc pl-5 space-y-1">';
-                lines.forEach(line => {
-                    if (line.trim()) result += `<li>${line.trim()}</li>`;
-                });
-                result += '</ul>';
-                return result;
+            // --- Header & Design Sync ---
+            const titleEl = document.getElementById('display-title');
+            const subtitleEl = document.getElementById('display-subtitle');
+            
+            titleEl.innerText = settings.title;
+            subtitleEl.innerText = settings.subtitle;
+            
+            if (settings.overrideColors) {
+                titleEl.style.color = settings.titleColor;
+                titleEl.classList.remove('text-blue-900', 'dark:text-blue-500');
+                subtitleEl.style.color = settings.subtitleColor;
+                subtitleEl.classList.remove('text-slate-500', 'dark:text-slate-400');
+            } else {
+                titleEl.style.color = '';
+                titleEl.classList.add('text-blue-900', 'dark:text-blue-500');
+                subtitleEl.style.color = '';
+                subtitleEl.classList.add('text-slate-500', 'dark:text-slate-400');
             }
 
-            lines.forEach(line => {
-                if (line.trim().startsWith('-')) {
-                    if (!inList) { result += '<ul class="list-disc pl-5 space-y-1 mt-2 mb-2">'; inList = true; }
-                    result += `<li>${line.substring(line.indexOf('-')+1).trim()}</li>`;
+            const headerLinkEl = document.getElementById('header-external-link');
+            if (headerLinkEl) {
+                if (settings.showHeaderLink === false) {
+                    headerLinkEl.classList.add('hidden');
+                    headerLinkEl.classList.remove('flex');
                 } else {
-                    if (inList) { result += '</ul>'; inList = false; }
-                    if (line.trim() !== '') result += `<p class="mb-1">${line}</p>`;
-                }
-            });
-            if (inList) result += '</ul>';
-            return result;
-        };
-
-        window.vote = function(type, id, val) {
-            let collection;
-            if (type === 'recipes') collection = recipes;
-            // Additional voting collections can be added here if expanded later
-
-            if (collection) {
-                const item = collection.find(i => i.id === id);
-                if (item) {
-                    item.votes = (item.votes || 0) + val;
-                    window.render();
-                    if (useFirebase) window.syncToCloud();
+                    headerLinkEl.classList.remove('hidden');
+                    headerLinkEl.classList.add('flex');
+                    headerLinkEl.href = settings.headerLinkUrl || 'https://my.scouting.org';
+                    headerLinkEl.innerHTML = `<i data-lucide="external-link" class="w-3.5 h-3.5"></i> ${settings.headerLinkText || 'my.scouting.org'}`;
                 }
             }
-        };
 
-        window.approveResource = function(type, id) {
-            let collection;
-            if (type === 'recipes') collection = recipes;
-            if (type === 'ceremonies') collection = ceremonies;
-            if (type === 'skits') collection = skits;
-            if (type === 'games') collection = games;
+            const logo = document.getElementById('main-logo');
+            logo.src = settings.logo;
+            logo.style.transform = `translate(${settings.x || 0}%, ${settings.y || 0}%) scale(${settings.zoom || 1})`;
 
-            if (collection) {
-                const item = collection.find(i => i.id === id);
-                if (item) {
-                    item.approved = true;
-                    window.render();
-                    if (useFirebase) window.syncToCloud();
-                    window.showToast("Entry Approved");
+            const mainHeader = document.getElementById('main-header');
+            const headerBgLayer = document.getElementById('header-bg-layer');
+            const headerBgImg = document.getElementById('header-bg-img');
+
+            mainHeader.style.backgroundColor = '';
+            mainHeader.style.borderColor = '';
+            headerBgLayer.classList.add('hidden');
+
+            if (settings.headerBorderColor) {
+                mainHeader.style.borderColor = settings.headerBorderColor;
+            }
+
+            if (settings.headerBgType === 'color' && settings.headerBgColor) {
+                mainHeader.style.backgroundColor = settings.headerBgColor;
+            } else if (settings.headerBgType === 'image' && settings.headerBgImage) {
+                headerBgLayer.classList.remove('hidden');
+                headerBgImg.src = settings.headerBgImage;
+                headerBgImg.style.transform = `translate(${settings.headerBgX || 0}%, ${settings.headerBgY || 0}%) scale(${settings.headerBgZoom || 1})`;
+            }
+
+            document.title = settings.title || 'Scout Hub';
+            const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+            if (appleTitle) appleTitle.setAttribute("content", settings.title || 'Scout Hub');
+
+            const iconUrl = settings.tabIconUrl || settings.logo || 'https://www.scouting.org/wp-content/uploads/2018/05/cub-scouts-logo.png';
+            window.applyDynamicFavicon(iconUrl, settings.tabIconZoom || 1, settings.tabIconX || 0, settings.tabIconY || 0);
+
+            if (isLeader || isAdmin) {
+                leaderNav.classList.remove('hidden');
+                const tabs = ['links', 'planner', 'committee', 'volunteer', 'recipes', 'ceremonies', 'skits', 'games'];
+                tabs.forEach(tab => {
+                    const el = document.getElementById(`tab-${tab}`);
+                    if(el) {
+                        el.className = `px-3 md:px-4 py-1.5 md:py-2 rounded-full font-bold uppercase tracking-widest text-[9px] md:text-[10px] transition-colors shadow-sm ${currentView === tab ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`;
+                    }
+                });
+            } else {
+                leaderNav.classList.add('hidden');
+                if(!['links', 'volunteer', 'recipes', 'ceremonies', 'skits', 'games'].includes(currentView)) {
+                    currentView = 'links'; 
                 }
             }
+
+            container.innerHTML = ''; 
+
+            if (currentView === 'planner') {
+                window.renderPlannerView(container);
+            } else if (currentView === 'committee') {
+                window.renderCommitteeView(container);
+            } else if (currentView === 'volunteer') {
+                window.renderVolunteerView(container);
+            } else if (currentView === 'recipes') {
+                window.renderRecipesView(container);
+            } else if (currentView === 'ceremonies') {
+                window.renderCeremoniesView(container);
+            } else if (currentView === 'skits') {
+                window.renderSkitsView(container);
+            } else if (currentView === 'games') {
+                window.renderGamesView(container);
+            } else {
+                window.renderLinksView(container);
+            }
+
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('theme-btn').innerHTML = isDark ? '<i data-lucide="sun" class="w-4 h-4 md:w-5 md:h-5"></i>' : '<i data-lucide="moon" class="w-4 h-4 md:w-5 md:h-5"></i>';
+
+            const homeBtn = document.getElementById('home-btn');
+            if (currentView !== 'links') {
+                homeBtn.classList.remove('hidden');
+            } else {
+                homeBtn.classList.add('hidden');
+            }
+
+            const lockBtn = document.getElementById('lock-btn');
+            if (isAdmin || isLeader) {
+                lockBtn.className = "w-12 h-12 rounded-[1rem] flex items-center justify-center bg-yellow-400 shadow-2xl transition-all hover:scale-110 active:scale-95 z-50";
+                lockBtn.innerHTML = '<i data-lucide="unlock" class="text-blue-900 w-5 h-5"></i>';
+            } else {
+                lockBtn.className = "w-12 h-12 rounded-[1rem] flex items-center justify-center bg-blue-900 shadow-2xl transition-all hover:scale-110 active:scale-95 z-50";
+                lockBtn.innerHTML = '<i data-lucide="lock" class="text-white w-5 h-5"></i>';
+            }
+
+            const appIconBtn = document.getElementById('app-icon-edit-btn');
+            const headerDesignBtn = document.getElementById('header-design-btn');
+            const adminBtn = document.getElementById('admin-toggle-btn');
+            if (isAdmin && currentView === 'links') {
+                adminBtn.classList.remove('hidden');
+                if (isEditing) {
+                    adminBtn.innerHTML = '<i data-lucide="settings" class="w-4 h-4 md:w-4 md:h-4 text-blue-900"></i><span class="text-[10px] md:text-xs">Finish Editing</span>';
+                    adminBtn.className = "flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 md:py-3 rounded-xl bg-yellow-400 text-blue-900 border-2 border-yellow-400 font-bold uppercase tracking-widest shadow-lg transition-all";
+                    appIconBtn.classList.remove('hidden');
+                    appIconBtn.classList.add('flex');
+                    headerDesignBtn.classList.remove('hidden');
+                    headerDesignBtn.classList.add('flex');
+                } else {
+                    adminBtn.innerHTML = '<i data-lucide="settings" class="w-4 h-4 md:w-4 md:h-4"></i><span class="text-[10px] md:text-xs">Edit Page</span>';
+                    adminBtn.className = "flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 md:py-3 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold uppercase tracking-widest shadow-lg transition-all hover:bg-slate-50 dark:hover:bg-slate-700";
+                    appIconBtn.classList.add('hidden');
+                    appIconBtn.classList.remove('flex');
+                    headerDesignBtn.classList.add('hidden');
+                    headerDesignBtn.classList.remove('flex');
+                }
+            } else {
+                adminBtn.classList.add('hidden');
+                appIconBtn.classList.add('hidden');
+                appIconBtn.classList.remove('flex');
+                headerDesignBtn.classList.add('hidden');
+                headerDesignBtn.classList.remove('flex');
+                if(currentView !== 'links') isEditing = false; 
+            }
+
+            const headerBtn = document.getElementById('edit-header-btn');
+            const textBtn = document.getElementById('edit-text-btn');
+            if (isAdmin && isEditing && currentView === 'links') {
+                headerBtn.classList.remove('hidden'); headerBtn.innerHTML = '<i data-lucide="edit-3" class="w-4 h-4 md:w-5 md:h-5"></i>';
+                if (textBtn) { textBtn.classList.remove('hidden'); textBtn.innerHTML = '<i data-lucide="edit-3" class="w-4 h-4 md:w-5 md:h-5"></i>'; }
+            } else {
+                headerBtn.classList.add('hidden');
+                if (textBtn) textBtn.classList.add('hidden');
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+            
+            localStorage.setItem('scout_links', JSON.stringify(links));
+            localStorage.setItem('scout_settings', JSON.stringify(settings));
+            localStorage.setItem('scout_categories', JSON.stringify(categories));
+            localStorage.setItem('scout_plans', JSON.stringify(plans));
+            localStorage.setItem('scout_committee', JSON.stringify(committeeNotes));
+            localStorage.setItem('scout_event_types', JSON.stringify(eventTypes));
+            localStorage.setItem('scout_leaders', JSON.stringify(leaders));
+            localStorage.setItem('scout_volunteers', JSON.stringify(volunteers));
+            localStorage.setItem('scout_recipes', JSON.stringify(recipes));
+            localStorage.setItem('scout_ceremonies', JSON.stringify(ceremonies));
+            localStorage.setItem('scout_skits', JSON.stringify(skits));
+            localStorage.setItem('scout_games', JSON.stringify(games));
+            localStorage.setItem('scout_updatedAt', localUpdatedAt.toString());
         };
 
-        window.deleteResource = function(type, id) {
-            if(confirm("Permanently delete this entry?")) {
-                if (type === 'recipes') recipes = recipes.filter(i => i.id !== id);
-                if (type === 'ceremonies') ceremonies = ceremonies.filter(i => i.id !== id);
-                if (type === 'skits') skits = skits.filter(i => i.id !== id);
-                if (type === 'games') games = games.filter(i => i.id !== id);
+        window.switchView = function(view) {
+            currentView = view;
+            window.render();
+        }
+
+        // --- Render View: Volunteer Roles Portal ---
+        window.renderVolunteerView = function(container) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'w-full max-w-4xl flex flex-col gap-4';
+
+            const headerRow = document.createElement('div');
+            headerRow.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4';
+            headerRow.innerHTML = `
+                <h2 class="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-3">
+                    <i data-lucide="users" class="w-6 h-6 text-red-600"></i> Volunteer Positions
+                </h2>
+                ${isAdmin ? `
+                <button onclick="window.openVolunteerModal()" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold uppercase tracking-widest text-[10px] shadow-lg transition-transform hover:scale-105 flex items-center gap-2">
+                    <i data-lucide="plus" class="w-3 h-3"></i> Add Role
+                </button>` : ''}
+            `;
+            wrapper.appendChild(headerRow);
+
+            if (volunteers.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'text-center py-20 opacity-50 font-bold uppercase tracking-widest text-sm text-slate-500';
+                empty.innerHTML = '<i data-lucide="user-x" class="w-16 h-16 mx-auto mb-4 opacity-50"></i> No volunteer positions listed.';
+                wrapper.appendChild(empty);
+            } else {
+                const listContainer = document.createElement('div');
+                listContainer.id = 'volunteer-list';
+                listContainer.className = 'flex flex-col gap-4 w-full';
+
+                volunteers.forEach(vol => {
+                    const card = document.createElement('div');
+                    card.className = 'vol-card p-6 flex flex-col relative group';
+                    card.dataset.id = vol.id;
+                    
+                    let respList = '';
+                    if(vol.responsibilities) {
+                        const items = vol.responsibilities.split('\n').filter(i => i.trim() !== '');
+                        if(items.length > 0) {
+                            respList = '<ul class="mt-4 space-y-2">';
+                            items.forEach(item => {
+                                respList += `<li class="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-400"><i data-lucide="check-circle-2" class="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0"></i> <span class="leading-relaxed">${item}</span></li>`;
+                            });
+                            respList += '</ul>';
+                        }
+                    }
+
+                    card.innerHTML = `
+                        ${isAdmin ? `
+                        <div class="absolute top-4 right-4 flex gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <button class="vol-drag-handle p-2 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-move" title="Drag to reorder"><i data-lucide="grip-horizontal" class="w-4 h-4 pointer-events-none"></i></button>
+                            <button onclick="window.openVolunteerModal(${vol.id})" class="p-2 bg-slate-100 dark:bg-slate-800 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="window.deleteVolunteer(${vol.id})" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg hover:bg-red-100 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>` : ''}
+                        <div class="flex flex-col pr-24 sm:pr-28">
+                            <h4 class="text-xl font-black text-slate-800 dark:text-slate-100 mb-1">${vol.position}</h4>
+                            ${vol.description ? `<p class="text-sm italic text-slate-500 dark:text-slate-400 border-l-2 border-slate-200 dark:border-slate-700 pl-3 my-2">${vol.description}</p>` : ''}
+                            ${respList}
+                        </div>
+                    `;
+                    listContainer.appendChild(card);
+                });
+                
+                wrapper.appendChild(listContainer);
+
+                if (isAdmin && window.Sortable) {
+                    setTimeout(() => {
+                        const el = document.getElementById('volunteer-list');
+                        if (el) {
+                            new Sortable(el, {
+                                animation: 250,
+                                handle: '.vol-drag-handle',
+                                onEnd: function() {
+                                    const newOrderIds = Array.from(el.children).map(child => parseInt(child.dataset.id));
+                                    const newVolunteers = [];
+                                    newOrderIds.forEach(id => {
+                                        const vol = volunteers.find(v => v.id === id);
+                                        if (vol) newVolunteers.push(vol);
+                                    });
+                                    volunteers = newVolunteers;
+                                    if (useFirebase) window.syncToCloud();
+                                }
+                            });
+                        }
+                    }, 50);
+                }
+            }
+            container.appendChild(wrapper);
+        }
+
+        window.openVolunteerModal = function(id = null) {
+            currentEditId = id;
+            let vol = id ? volunteers.find(v => v.id === id) : null;
+            document.getElementById('vol-position').value = vol ? vol.position : '';
+            document.getElementById('vol-description').value = vol ? vol.description : '';
+            document.getElementById('vol-responsibilities').value = vol ? vol.responsibilities : '';
+            document.getElementById('volunteer-modal').classList.replace('hidden', 'flex');
+            setTimeout(() => { window.autoResizeTextarea(document.getElementById('vol-responsibilities')); }, 10);
+        }
+
+        window.closeVolunteerModal = () => document.getElementById('volunteer-modal').classList.replace('flex', 'hidden');
+
+        window.saveVolunteer = function() {
+            const position = document.getElementById('vol-position').value;
+            const description = document.getElementById('vol-description').value;
+            const responsibilities = document.getElementById('vol-responsibilities').value;
+
+            if(!position) { window.showToast("Role Name is required", true); return; }
+
+            if (currentEditId) {
+                const v = volunteers.find(v => v.id === currentEditId);
+                if (v) { v.position = position; v.description = description; v.responsibilities = responsibilities; }
+            } else {
+                volunteers.push({ id: Date.now(), position, description, responsibilities });
+            }
+
+            window.closeVolunteerModal(); window.render(); if (useFirebase) window.syncToCloud();
+        }
+
+        window.deleteVolunteer = function(id) {
+            if(confirm("Remove this volunteer role?")) { volunteers = volunteers.filter(v => v.id !== id); window.render(); if (useFirebase) window.syncToCloud(); }
+        }
+
+        // --- Render View: Committee Notes ---
+        window.renderCommitteeView = function(container) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'w-full max-w-4xl flex flex-col gap-4';
+
+            const headerRow = document.createElement('div');
+            headerRow.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4';
+            headerRow.innerHTML = `
+                <h2 class="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-3">
+                    <i data-lucide="users" class="w-6 h-6 text-blue-600"></i> Committee Notes
+                </h2>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="window.exportAllNotes()" class="px-5 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full font-bold uppercase tracking-widest text-[10px] shadow-sm transition-colors flex items-center gap-2">
+                        <i data-lucide="download" class="w-3 h-3"></i> Export Full PDF
+                    </button>
+                    ${isAdmin ? `
+                    <button onclick="window.openCommitteeModal(null, 'committee')" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold uppercase tracking-widest text-[10px] shadow-lg transition-transform hover:scale-105 flex items-center gap-2">
+                        <i data-lucide="plus" class="w-3 h-3"></i> Committee Meeting
+                    </button>
+                    <button onclick="window.openCommitteeModal(null, 'roundtable')" class="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full font-bold uppercase tracking-widest text-[10px] shadow-lg transition-transform hover:scale-105 flex items-center gap-2">
+                        <i data-lucide="plus" class="w-3 h-3"></i> Roundtable
+                    </button>
+                    ` : ''}
+                </div>
+            `;
+            wrapper.appendChild(headerRow);
+
+            const sortedNotes = [...committeeNotes].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (sortedNotes.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'text-center py-20 opacity-50 font-bold uppercase tracking-widest text-sm text-slate-500';
+                empty.innerHTML = '<i data-lucide="folder-open" class="w-16 h-16 mx-auto mb-4 opacity-50"></i> No meeting notes recorded.';
+                wrapper.appendChild(empty);
+            } else {
+                sortedNotes.forEach(note => {
+                    const card = document.createElement('div');
+                    const isExpanded = expandedCommNotes.includes(note.id);
+                    const isRT = note.type === 'roundtable';
+                    
+                    card.className = `${isRT ? 'rt-card' : 'comm-card'} p-5 flex flex-col cursor-pointer hover:-translate-y-1`;
+                    card.onclick = (e) => {
+                        if (e.target.closest('button')) return; 
+                        window.toggleCommitteeNote(note.id);
+                    };
+
+                    const d = new Date(`${note.date}T00:00:00`);
+                    const dateStr = isNaN(d) ? note.date : d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+                    let innerHTML = `
+                        <div class="flex justify-between items-center w-full">
+                            <div class="flex flex-col">
+                                <span class="font-bold ${isRT ? 'text-yellow-600 dark:text-yellow-500' : 'text-blue-900 dark:text-blue-400'} text-base md:text-lg flex items-center gap-2">
+                                    ${dateStr}
+                                    ${isRT ? '<span class="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 text-[9px] uppercase tracking-widest rounded-md">Roundtable</span>' : ''}
+                                </span>
+                                <span class="italic text-slate-500 text-xs mt-1 flex items-center gap-1.5"><i data-lucide="users" class="w-3 h-3"></i> ${note.attendees || 'No attendees listed'}</span>
+                            </div>
+                            <div class="text-slate-400">
+                                <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}"></i>
+                            </div>
+                        </div>
+                    `;
+
+                    if (isExpanded) {
+                        innerHTML += `
+                            <div class="mt-4 border-t border-slate-100 dark:border-slate-800 pt-4 cursor-default text-sm text-slate-700 dark:text-slate-300 space-y-4" onclick="(e) => e.stopPropagation()">
+                                
+                                ${!isRT ? `
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                                        <span class="font-black text-slate-400 uppercase text-[9px] tracking-widest block mb-1">Finances</span>
+                                        <div><strong class="text-xs">Cash on Hand:</strong> <span class="text-xs">$${note.cashOnHand || '0.00'}</span></div>
+                                        <div class="mt-1"><strong class="text-xs">Notes:</strong> <span class="text-xs">${note.financeNotes || '-'}</span></div>
+                                    </div>
+                                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                                        <span class="font-black text-slate-400 uppercase text-[9px] tracking-widest block mb-1">Volunteer Status</span>
+                                        <div class="text-xs">${note.volunteerStatus || '-'}</div>
+                                    </div>
+                                </div>
+                                ` : `
+                                <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                                    <span class="font-black text-slate-400 uppercase text-[9px] tracking-widest block mb-1">Volunteer Status Update</span>
+                                    <div class="text-xs">${note.volunteerStatus || '-'}</div>
+                                </div>
+                                `}
+
+                                ${!isRT ? `
+                                <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 overflow-hidden">
+                                    <div class="grid grid-cols-[90px_1fr] sm:grid-cols-[120px_1fr] border-b border-slate-200 dark:border-slate-700">
+                                        <div class="p-2 sm:p-3 bg-slate-100 dark:bg-slate-800/80 text-[10px] font-black uppercase text-slate-500 flex items-center">Current Mo.</div>
+                                        <div class="p-2 text-xs space-y-1">
+                                            <div><strong class="text-slate-400">Pack Mtg:</strong> ${note.cp || '-'}</div>
+                                            <div><strong class="text-slate-400">Outing:</strong> ${note.co || '-'}</div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-[90px_1fr] sm:grid-cols-[120px_1fr] border-b border-slate-200 dark:border-slate-700">
+                                        <div class="p-2 sm:p-3 bg-slate-100 dark:bg-slate-800/80 text-[10px] font-black uppercase text-slate-500 flex items-center">Next Month</div>
+                                        <div class="p-2 text-xs space-y-1">
+                                            <div><strong class="text-slate-400">Pack Mtg:</strong> ${note.np || '-'}</div>
+                                            <div><strong class="text-slate-400">Outing:</strong> ${note.no || '-'}</div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-[90px_1fr] sm:grid-cols-[120px_1fr]">
+                                        <div class="p-2 sm:p-3 bg-slate-100 dark:bg-slate-800/80 text-[10px] font-black uppercase text-slate-500 flex items-center">Following Mo.</div>
+                                        <div class="p-2 text-xs space-y-1">
+                                            <div><strong class="text-slate-400">Pack Mtg:</strong> ${note.fp || '-'}</div>
+                                            <div><strong class="text-slate-400">Outing:</strong> ${note.fo || '-'}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <span class="font-black text-slate-400 uppercase text-[9px] tracking-widest block mb-1">Action Items</span>
+                                    <div class="text-xs whitespace-pre-wrap bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">${note.action || '-'}</div>
+                                </div>
+                                ` : ''}
+
+                                <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row gap-2 sm:gap-4">
+                                    <div class="whitespace-nowrap"><span class="font-black text-slate-400 uppercase text-[9px] tracking-widest block mb-1">Round Table Name</span><div class="text-xs font-bold">${note.rtName || '-'}</div></div>
+                                    <div class="w-full"><span class="font-black text-slate-400 uppercase text-[9px] tracking-widest block mb-1">Comments</span><div class="text-xs italic">${note.rtComments || '-'}</div></div>
+                                </div>
+
+                                ${!isRT && note.notes ? `
+                                <div class="mt-4 pt-4 border-t border-dashed border-slate-200 dark:border-slate-700">
+                                    <span class="font-black text-slate-400 uppercase text-[9px] tracking-widest block mb-1">Legacy / General Notes</span>
+                                    <div class="text-xs whitespace-pre-wrap">${note.notes}</div>
+                                </div>
+                                ` : ''}
+                                
+                                <div class="mt-6 flex justify-end gap-2 sm:gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
+                                    <button onclick="window.exportSingleNote(${note.id})" class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg font-bold uppercase tracking-widest text-[9px] transition-colors flex items-center gap-1.5">
+                                        <i data-lucide="file-down" class="w-3 h-3"></i> PDF
+                                    </button>
+                                    ${isAdmin ? `
+                                    <button onclick="window.openCommitteeModal(${note.id}, '${note.type || 'committee'}')" class="px-3 py-2 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-lg font-bold uppercase tracking-widest text-[9px] transition-colors flex items-center gap-1.5">
+                                        <i data-lucide="unlock" class="w-3 h-3"></i> Edit
+                                    </button>
+                                    <button onclick="window.deleteCommitteeNote(${note.id})" class="px-3 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-lg font-bold uppercase tracking-widest text-[9px] transition-colors flex items-center gap-1.5">
+                                        <i data-lucide="trash-2" class="w-3 h-3"></i> Delete
+                                    </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    card.innerHTML = innerHTML;
+                    wrapper.appendChild(card);
+                });
+            }
+
+            container.appendChild(wrapper);
+        }
+
+        window.toggleCommitteeNote = function(id) {
+            if (expandedCommNotes.includes(id)) { expandedCommNotes = expandedCommNotes.filter(n => n !== id); } 
+            else { expandedCommNotes.push(id); }
+            window.render();
+        }
+
+        window.openCommitteeModal = function(id = null, type = 'committee') {
+            currentCommType = type;
+            if (!id) {
+                id = Date.now();
+                const todayStr = new Date().toISOString().split('T')[0];
+                committeeNotes.push({ id: id, type: type, date: todayStr, attendees: '', cashOnHand: '', financeNotes: '', volunteerStatus: '', cp: '', co: '', np: '', no: '', fp: '', fo: '', action: '', rtName: '', rtComments: '', notes: '' });
+                if (useFirebase) window.syncToCloud();
+            }
+            
+            currentCommEditId = id;
+            const note = committeeNotes.find(n => n.id === id);
+            currentCommType = note.type || 'committee';
+            
+            document.getElementById('comm-date').value = note.date || '';
+            document.getElementById('comm-attendees').value = note.attendees || '';
+            document.getElementById('comm-cash').value = note.cashOnHand || '';
+            document.getElementById('comm-finance').value = note.financeNotes || '';
+            document.getElementById('comm-volunteer').value = note.volunteerStatus || '';
+            document.getElementById('comm-cp').value = note.cp || '';
+            document.getElementById('comm-co').value = note.co || '';
+            document.getElementById('comm-np').value = note.np || '';
+            document.getElementById('comm-no').value = note.no || '';
+            document.getElementById('comm-fp').value = note.fp || '';
+            document.getElementById('comm-fo').value = note.fo || '';
+            document.getElementById('comm-action').value = note.action || '';
+            document.getElementById('comm-rtname').value = note.rtName || '';
+            document.getElementById('comm-rtcomments').value = note.rtComments || '';
+            document.getElementById('comm-notes').value = note.notes || '';
+            
+            const isRT = currentCommType === 'roundtable';
+            document.getElementById('comm-modal-title').innerHTML = isRT 
+                ? '<i data-lucide="users" class="w-5 h-5 text-yellow-500"></i> Roundtable Notes'
+                : '<i data-lucide="file-text" class="w-5 h-5 text-blue-400"></i> Meeting Minutes';
+            document.getElementById('comm-modal-panel').className = `bg-white dark:bg-slate-900 rounded-3xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl modal-animate border-b-8 ${isRT ? 'border-yellow-500' : 'border-blue-600'} my-auto`;
+
+            document.getElementById('comm-finance-row').style.display = isRT ? 'none' : '';
+            document.getElementById('comm-planner-row').style.display = isRT ? 'none' : '';
+            document.getElementById('comm-action-row').style.display = isRT ? 'none' : '';
+            document.getElementById('comm-legacy-container').style.display = isRT ? 'none' : '';
+
+            const statusEl = document.getElementById('comm-save-status');
+            statusEl.innerText = 'Ready';
+            statusEl.className = 'text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5';
+            
+            document.getElementById('committee-modal').classList.replace('hidden', 'flex');
+            if (window.lucide) window.lucide.createIcons();
+
+            setTimeout(() => {
+                document.querySelectorAll('#committee-modal textarea').forEach(el => {
+                    if(el.closest('div').style.display !== 'none') window.autoResizeTextarea(el);
+                });
+            }, 10);
+        }
+
+        window.closeCommitteeModal = function() {
+            const note = committeeNotes.find(n => n.id === currentCommEditId);
+            if (note && !note.notes?.trim() && !note.attendees?.trim() && !note.cashOnHand?.trim() && !note.cp?.trim() && !note.action?.trim() && !note.rtComments?.trim()) {
+                committeeNotes = committeeNotes.filter(n => n.id !== currentCommEditId);
+                if (useFirebase) window.syncToCloud();
+            }
+            document.getElementById('committee-modal').classList.replace('flex', 'hidden');
+            window.render(); 
+        }
+
+        window.triggerCommAutoSave = function() {
+            const statusEl = document.getElementById('comm-save-status');
+            statusEl.innerText = 'Saving...';
+            statusEl.className = 'text-yellow-500 text-[9px] font-bold uppercase tracking-widest mt-0.5';
+            
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                const note = committeeNotes.find(n => n.id === currentCommEditId);
+                if (note) {
+                    note.type = currentCommType;
+                    note.date = document.getElementById('comm-date').value;
+                    note.attendees = document.getElementById('comm-attendees').value;
+                    note.cashOnHand = document.getElementById('comm-cash').value;
+                    note.financeNotes = document.getElementById('comm-finance').value;
+                    note.volunteerStatus = document.getElementById('comm-volunteer').value;
+                    note.cp = document.getElementById('comm-cp').value;
+                    note.co = document.getElementById('comm-co').value;
+                    note.np = document.getElementById('comm-np').value;
+                    note.no = document.getElementById('comm-no').value;
+                    note.fp = document.getElementById('comm-fp').value;
+                    note.fo = document.getElementById('comm-fo').value;
+                    note.action = document.getElementById('comm-action').value;
+                    note.rtName = document.getElementById('comm-rtname').value;
+                    note.rtComments = document.getElementById('comm-rtcomments').value;
+                    note.notes = document.getElementById('comm-notes').value;
+                    
+                    window.render();
+                    if (useFirebase) { window.syncToCloud(); }
+                    
+                    statusEl.innerText = 'Saved';
+                    statusEl.className = 'text-green-500 text-[9px] font-bold uppercase tracking-widest mt-0.5';
+                }
+            }, 1000); 
+        }
+
+        window.deleteCommitteeNote = function(id) {
+            if(confirm("Permanently delete this meeting's minutes?")) {
+                committeeNotes = committeeNotes.filter(n => n.id !== id);
                 window.render();
                 if (useFirebase) window.syncToCloud();
             }
-        };
+        }
 
-        window.printResource = function(type, id) {
-            let item;
-            if (type === 'recipes') item = recipes.find(i => i.id === id);
-            if (type === 'ceremonies') item = ceremonies.find(i => i.id === id);
-            if (type === 'skits') item = skits.find(i => i.id === id);
-            if (type === 'games') item = games.find(i => i.id === id);
-            if (!item) return;
+        window.getPDFTemplateHTML = function(note) {
+            const d = new Date(`${note.date}T00:00:00`);
+            const dateStr = isNaN(d) ? note.date : d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const isRT = note.type === 'roundtable';
 
-            const html = window.getResourcePDFTemplate(type, item);
-            const win = window.open('', '_blank');
-            win.document.write(`<html><head><title>Print ${item.title}</title><style>body{font-family:sans-serif;}</style></head><body>${html}</body></html>`);
-            win.document.close();
-            win.focus();
-            setTimeout(() => { win.print(); win.close(); }, 250);
-        };
+            return `
+                <div style="font-family: Helvetica, Arial, sans-serif; padding: 20px;">
+                    <h1 style="color: ${isRT ? '#b45309' : '#003F87'}; font-size: 22px; font-weight: 900; border-bottom: 3px solid #FDC82F; padding-bottom: 8px; margin-bottom: 15px; text-transform: uppercase;">
+                        ${isRT ? 'Roundtable Notes' : 'Committee Meeting Minutes'}
+                    </h1>
+                    
+                    <div style="margin-bottom: 20px; font-size: 12px;">
+                        <span style="display:inline-block; width: 70px;"><strong>Date:</strong></span> ${dateStr}<br/>
+                        <span style="display:inline-block; width: 70px;"><strong>Attendees:</strong></span> ${note.attendees || 'None specified'}
+                    </div>
 
-        window.exportResourcePDF = function(type, id) {
-            let item;
-            if (type === 'recipes') item = recipes.find(i => i.id === id);
-            if (type === 'ceremonies') item = ceremonies.find(i => i.id === id);
-            if (type === 'skits') item = skits.find(i => i.id === id);
-            if (type === 'games') item = games.find(i => i.id === id);
-            if (!item) return;
+                    ${!isRT ? `
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 11px;">
+                        <tr>
+                            <th style="border: 1px solid #000; padding: 6px; text-align: left; width: 100px; background: #f1f5f9;">Cash on Hand</th>
+                            <td style="border: 1px solid #000; padding: 6px; width: 100px;">$${note.cashOnHand || '0.00'}</td>
+                            <th style="border: 1px solid #000; padding: 6px; text-align: left; width: 100px; background: #f1f5f9;">Finance Notes</th>
+                            <td style="border: 1px solid #000; padding: 6px;">${note.financeNotes || ''}</td>
+                        </tr>
+                    </table>
+                    ` : ''}
 
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 11px;">
+                        <tr><th style="border: 1px solid #000; padding: 6px; text-align: left; background: #f1f5f9;">Volunteer Status Update</th></tr>
+                        <tr><td style="border: 1px solid #000; padding: 6px; height: 25px;">${note.volunteerStatus || ''}</td></tr>
+                    </table>
+
+                    ${!isRT ? `
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 11px;">
+                        <tr>
+                            <th style="border: 1px solid #000; padding: 6px; text-align: left; width: 100px; background: #f1f5f9;">Current Month</th>
+                            <td style="border: 1px solid #000; padding: 4px 6px;">
+                                <div style="margin-bottom:2px;"><strong>Pack Meeting:</strong> ${note.cp || ''}</div>
+                                <div><strong>Outing:</strong> ${note.co || ''}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th style="border: 1px solid #000; padding: 6px; text-align: left; background: #f1f5f9;">Next Month</th>
+                            <td style="border: 1px solid #000; padding: 4px 6px;">
+                                <div style="margin-bottom:2px;"><strong>Pack Meeting:</strong> ${note.np || ''}</div>
+                                <div><strong>Outing:</strong> ${note.no || ''}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th style="border: 1px solid #000; padding: 6px; text-align: left; background: #f1f5f9;">Following Month</th>
+                            <td style="border: 1px solid #000; padding: 4px 6px;">
+                                <div style="margin-bottom:2px;"><strong>Pack Meeting:</strong> ${note.fp || ''}</div>
+                                <div><strong>Outing:</strong> ${note.fo || ''}</div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 11px;">
+                        <tr><th style="border: 1px solid #000; padding: 6px; text-align: left; background: #f1f5f9;">Action Items</th></tr>
+                        <tr><td style="border: 1px solid #000; padding: 6px; height: 50px; white-space: pre-wrap; vertical-align: top;">${note.action || ''}</td></tr>
+                    </table>
+                    ` : ''}
+
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 11px;">
+                        <tr>
+                            <th style="border: 1px solid #000; padding: 6px; text-align: left; width: 120px; background: #f1f5f9;">Round Table Name</th>
+                            <th style="border: 1px solid #000; padding: 6px; text-align: left; background: #f1f5f9;">Comments</th>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; vertical-align: top;">${note.rtName || ''}</td>
+                            <td style="border: 1px solid #000; padding: 6px; vertical-align: top; white-space: pre-wrap;">${note.rtComments || ''}</td>
+                        </tr>
+                    </table>
+                    
+                    ${!isRT && note.notes ? `
+                    <div style="font-size: 11px; margin-top: 20px;">
+                        <strong>Legacy / General Notes:</strong><br/>
+                        <div style="white-space: pre-wrap; margin-top: 5px; color: #444;">${note.notes}</div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        window.exportSingleNote = function(id) {
+            const note = committeeNotes.find(n => n.id === id);
+            if(!note) return;
+            
             window.showToast("Generating PDF...");
             const element = document.createElement('div');
-            element.innerHTML = window.getResourcePDFTemplate(type, item);
+            element.innerHTML = window.getPDFTemplateHTML(note);
 
             html2pdf().set({
                 margin: 10,
-                filename: `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
+                filename: `Pack_${note.type === 'roundtable' ? 'Roundtable' : 'Minutes'}_${note.date}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
             }).from(element).save();
-        };
+        }
 
-        window.getResourcePDFTemplate = function(type, item) {
-            const dateStr = new Date(item.createdAt).toLocaleDateString();
-            let costStr = item.cost ? "$".repeat(item.cost) : '';
+        window.exportAllNotes = function() {
+            if(committeeNotes.length === 0) { window.showToast("No history to export.", true); return; }
             
-            let html = `
-                <div style="font-family: Helvetica, Arial, sans-serif; padding: 20px;">
-                    <h1 style="color: #003F87; font-size: 24px; font-weight: 900; border-bottom: 3px solid #FDC82F; padding-bottom: 8px; margin-bottom: 15px; text-transform: uppercase;">
-                        ${item.title}
-                    </h1>
-                    <div style="margin-bottom: 20px; font-size: 12px; color: #555;">
-                        <strong>Submitted by:</strong> ${item.name} (${item.unit || 'No unit specified'})<br/>
-                        <strong>Date:</strong> ${dateStr}
-            `;
+            window.showToast("Generating Full History PDF...");
+            const sortedNotes = [...committeeNotes].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            if (type === 'recipes') {
-                html += `
-                        <br/><strong>Categories:</strong> ${Array.isArray(item.cat) ? item.cat.join(', ') : item.cat}
-                        <br/><strong>Est. Cost:</strong> <span style="color:#16a34a">${costStr}</span>
-                    </div>
-                    
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
-                        <tr>
-                            <td style="width: 40%; vertical-align: top; padding-right: 20px; border-right: 1px solid #ccc;">
-                                <h3 style="margin-top:0; color:#CE1126; font-size:14px; text-transform:uppercase;">Ingredients</h3>
-                                <div style="font-size: 12px;">${window.formatBulletPoints(item.ingredients, true)}</div>
-                            </td>
-                            <td style="width: 60%; vertical-align: top; padding-left: 20px;">
-                                <h3 style="margin-top:0; color:#CE1126; font-size:14px; text-transform:uppercase;">Instructions</h3>
-                                <div style="font-size: 12px;">${window.formatBulletPoints(item.body, false)}</div>
-                            </td>
-                        </tr>
-                    </table>
-                `;
-                if (item.notes) {
-                    html += `
-                        <div style="margin-top: 20px; font-size: 12px; padding: 15px; background: #f1f5f9; border-radius: 8px;">
-                            <strong>Notes:</strong><br/>
-                            ${item.notes}
-                        </div>
-                    `;
-                }
-            } else {
-                // ceremonies, skits, games
-                html += `
-                        <br/><strong>Category/Type:</strong> ${item.cat}
-                    </div>
-                `;
-
-                if (item.brief) {
-                    html += `
-                        <div style="margin-bottom: 20px; font-size: 13px; font-style: italic; color: #444;">
-                            ${item.brief}
-                        </div>
-                    `;
-                }
-
-                html += `
-                    <div>
-                        <h3 style="color:#CE1126; font-size:14px; text-transform:uppercase; margin-bottom: 10px;">Details / Script</h3>
-                        <div style="font-size: 12px; line-height: 1.5;">${window.formatBulletPoints(item.body, false)}</div>
-                    </div>
-                `;
-            }
-
-            html += `</div>`;
-            return html;
-        };
-
-        // --- Render Views for New Modules ---
-        
-        // 1. Recipes View
-        window.renderRecipesView = function(container) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'w-full max-w-4xl flex flex-col gap-4';
-
-            // Filter Bar logic
-            const filterCatOptions = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Trail'];
-            const filterCostOptions = [{l:'All Costs', v:0}, {l:'$', v:1}, {l:'$$', v:2}, {l:'$$$', v:3}];
-
-            const headerRow = document.createElement('div');
-            headerRow.className = 'flex flex-col gap-4 mb-2';
-            headerRow.innerHTML = `
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <h2 class="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-3">
-                        <i data-lucide="utensils-crossed" class="w-6 h-6 text-green-600"></i> Recipe Keeper
-                    </h2>
-                    <button onclick="window.openResourceModal('recipes')" class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-full font-bold uppercase tracking-widest text-[10px] shadow-lg transition-transform hover:scale-105 flex items-center gap-2 flex-shrink-0">
-                        <i data-lucide="plus" class="w-3 h-3"></i> Submit New Recipe
-                    </button>
-                </div>
-                
-                <div class="flex flex-wrap gap-3 p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                    <select id="rec-filter-cat" onchange="recipeFilter.category = this.value; window.render()" class="p-2 bg-slate-50 dark:bg-slate-900 rounded-xl text-xs font-bold outline-none text-slate-600 dark:text-slate-300">
-                        ${filterCatOptions.map(o => `<option value="${o}" ${recipeFilter.category === o ? 'selected' : ''}>${o}</option>`).join('')}
-                    </select>
-                    <select id="rec-filter-cost" onchange="recipeFilter.cost = parseInt(this.value); window.render()" class="p-2 bg-slate-50 dark:bg-slate-900 rounded-xl text-xs font-bold outline-none text-slate-600 dark:text-slate-300">
-                        ${filterCostOptions.map(o => `<option value="${o.v}" ${recipeFilter.cost === o.v ? 'selected' : ''}>${o.l}</option>`).join('')}
-                    </select>
-                </div>
-            `;
-            wrapper.appendChild(headerRow);
-
-            let displayItems = recipes.filter(item => {
-                if (!isAdmin && !item.approved) return false;
-                if (recipeFilter.category !== 'All' && !(item.cat || []).includes(recipeFilter.category)) return false;
-                if (recipeFilter.cost !== 0 && item.cost !== recipeFilter.cost) return false;
-                return true;
+            const container = document.createElement('div');
+            sortedNotes.forEach((note, index) => {
+                const noteDiv = document.createElement('div');
+                noteDiv.innerHTML = window.getPDFTemplateHTML(note);
+                if(index < sortedNotes.length - 1) { noteDiv.innerHTML += `<div class="html2pdf__page-break"></div>`; }
+                container.appendChild(noteDiv);
             });
-            displayItems.sort((a,b) => (b.votes || 0) - (a.votes || 0));
 
-            if (displayItems.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'text-center py-20 opacity-50 font-bold uppercase tracking-widest text-sm text-slate-500';
-                empty.innerHTML = '<i data-lucide="chef-hat" class="w-16 h-16 mx-auto mb-4 opacity-50"></i> No recipes found.';
-                wrapper.appendChild(empty);
-            } else {
-                displayItems.forEach(item => {
-                    wrapper.appendChild(window.createResourceBubble('recipes', item));
-                });
-            }
-            container.appendChild(wrapper);
-        };
+            html2pdf().set({
+                margin: 0,
+                filename: `Complete_Committee_History.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                pagebreak: { mode: 'css', before: '.html2pdf__page-break' },
+                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+            }).from(container).save();
+        }
 
-        // 2. Ceremonies View
-        window.renderCeremoniesView = function(container) {
+        // --- Render View: Planner ---
+        window.renderPlannerView = function(container) {
             const wrapper = document.createElement('div');
             wrapper.className = 'w-full max-w-4xl flex flex-col gap-4';
 
             const headerRow = document.createElement('div');
-            headerRow.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4';
+            headerRow.className = 'flex justify-between items-center mb-2';
             headerRow.innerHTML = `
                 <h2 class="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-3">
-                    <i data-lucide="scroll" class="w-6 h-6 text-purple-600"></i> Ceremony Scripts
+                    <i data-lucide="calendar-days" class="w-6 h-6 text-blue-600"></i> Upcoming Events
                 </h2>
-                <button onclick="window.openResourceModal('ceremonies')" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-bold uppercase tracking-widest text-[10px] shadow-lg transition-transform hover:scale-105 flex items-center gap-2">
-                    <i data-lucide="plus" class="w-3 h-3"></i> Submit New Script
+                ${(isAdmin || isLeader) ? `
+                <button onclick="window.openPlannerModal()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold uppercase tracking-widest text-[10px] shadow-lg transition-transform hover:scale-105 flex items-center gap-2">
+                    <i data-lucide="plus" class="w-3 h-3"></i> Add Event
                 </button>
+                ` : ''}
             `;
             wrapper.appendChild(headerRow);
 
-            let displayItems = ceremonies.filter(item => isAdmin || item.approved);
+            const sortedPlans = [...plans].sort((a, b) => {
+                const dateA = new Date(`${a.date}T${a.time}`);
+                const dateB = new Date(`${b.date}T${b.time}`);
+                return dateA - dateB;
+            });
 
-            if (displayItems.length === 0) {
+            if (sortedPlans.length === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'text-center py-20 opacity-50 font-bold uppercase tracking-widest text-sm text-slate-500';
-                empty.innerHTML = '<i data-lucide="book-open" class="w-16 h-16 mx-auto mb-4 opacity-50"></i> No scripts found.';
+                empty.innerHTML = '<i data-lucide="calendar-x-2" class="w-16 h-16 mx-auto mb-4 opacity-50"></i> No upcoming events scheduled.';
                 wrapper.appendChild(empty);
             } else {
-                displayItems.forEach(item => { wrapper.appendChild(window.createResourceBubble('ceremonies', item)); });
-            }
-            container.appendChild(wrapper);
-        };
+                sortedPlans.forEach(plan => {
+                    const card = document.createElement('div');
+                    card.className = 'plan-card p-4 flex flex-col md:flex-row gap-4 relative group';
+                    
+                    const d = new Date(`${plan.date}T00:00:00`);
+                    const dateStr = isNaN(d) ? plan.date : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                    
+                    let timeStr = plan.time;
+                    if(plan.time) {
+                        let [h, m] = plan.time.split(':');
+                        let ampm = h >= 12 ? 'PM' : 'AM';
+                        h = h % 12;
+                        h = h ? h : 12; 
+                        timeStr = `${h}:${m} ${ampm}`;
+                    }
 
-        // 3. Skits View
-        window.renderSkitsView = function(container) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'w-full max-w-4xl flex flex-col gap-4';
-
-            const headerRow = document.createElement('div');
-            headerRow.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4';
-            headerRow.innerHTML = `
-                <h2 class="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-3">
-                    <i data-lucide="masks-theater" class="w-6 h-6 text-orange-600"></i> Skits
-                </h2>
-                <button onclick="window.openResourceModal('skits')" class="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-full font-bold uppercase tracking-widest text-[10px] shadow-lg transition-transform hover:scale-105 flex items-center gap-2">
-                    <i data-lucide="plus" class="w-3 h-3"></i> Submit New Skit
-                </button>
-            `;
-            wrapper.appendChild(headerRow);
-
-            let displayItems = skits.filter(item => isAdmin || item.approved);
-
-            if (displayItems.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'text-center py-20 opacity-50 font-bold uppercase tracking-widest text-sm text-slate-500';
-                empty.innerHTML = '<i data-lucide="smile" class="w-16 h-16 mx-auto mb-4 opacity-50"></i> No skits found.';
-                wrapper.appendChild(empty);
-            } else {
-                displayItems.forEach(item => { wrapper.appendChild(window.createResourceBubble('skits', item)); });
-            }
-            container.appendChild(wrapper);
-        };
-
-        // 4. Games View
-        window.renderGamesView = function(container) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'w-full max-w-4xl flex flex-col gap-4';
-
-            const headerRow = document.createElement('div');
-            headerRow.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4';
-            headerRow.innerHTML = `
-                <h2 class="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-3">
-                    <i data-lucide="dices" class="w-6 h-6 text-teal-600"></i> Games & Activities
-                </h2>
-                <button onclick="window.openResourceModal('games')" class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-full font-bold uppercase tracking-widest text-[10px] shadow-lg transition-transform hover:scale-105 flex items-center gap-2">
-                    <i data-lucide="plus" class="w-3 h-3"></i> Submit New Activity
-                </button>
-            `;
-            wrapper.appendChild(headerRow);
-
-            let displayItems = games.filter(item => isAdmin || item.approved);
-
-            if (displayItems.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'text-center py-20 opacity-50 font-bold uppercase tracking-widest text-sm text-slate-500';
-                empty.innerHTML = '<i data-lucide="puzzle" class="w-16 h-16 mx-auto mb-4 opacity-50"></i> No games or activities found.';
-                wrapper.appendChild(empty);
-            } else {
-                displayItems.forEach(item => { wrapper.appendChild(window.createResourceBubble('games', item)); });
-            }
-            container.appendChild(wrapper);
-        };
-
-        // --- Helper to build resource bubble HTML ---
-        window.createResourceBubble = function(type, item) {
-            const card = document.createElement('div');
-            const isExpanded = expandedResources.includes(item.id);
-            const isApproved = item.approved;
-            
-            card.className = `res-card p-5 flex flex-col cursor-pointer hover:-translate-y-1 ${!isApproved ? 'unapproved-card' : ''}`;
-            card.onclick = (e) => {
-                // don't toggle if clicking inside the body or on a button
-                if (e.target.closest('button') || e.target.closest('.bubble-body') || e.target.closest('a')) return; 
-                window.toggleResourceBubble(item.id);
-            };
-
-            let catBadges = '';
-            if (type === 'recipes' && Array.isArray(item.cat)) {
-                catBadges = item.cat.map(c => `<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-[9px] uppercase tracking-widest font-bold">${c}</span>`).join(' ');
-            } else if (item.cat) {
-                catBadges = `<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-[9px] uppercase tracking-widest font-bold">${item.cat}</span>`;
-            }
-
-            let costStr = '';
-            if (type === 'recipes' && item.cost) {
-                costStr = `<span class="text-green-600 dark:text-green-500 font-black tracking-widest text-sm">${"$".repeat(item.cost)}</span>`;
-            }
-
-            let headerHTML = `
-                <div class="flex justify-between items-center w-full gap-4">
-                    <div class="flex flex-col items-start gap-1">
-                        <div class="flex flex-wrap gap-2 items-center">
-                            ${catBadges}
-                            ${costStr}
-                            ${!isApproved ? '<span class="px-2 py-0.5 bg-yellow-500 text-white rounded text-[9px] uppercase tracking-widest font-black animate-pulse">Pending Approval</span>' : ''}
-                        </div>
-                        <h4 class="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100 leading-tight">${item.title}</h4>
-                    </div>
-                    <div class="flex items-center gap-4 flex-shrink-0">
-                        ${type === 'recipes' ? `
-                        <div class="flex flex-col items-center bg-slate-50 dark:bg-slate-800 rounded-lg p-1" onclick="event.stopPropagation()">
-                            <button onclick="window.vote('${type}', ${item.id}, 1)" class="text-slate-400 hover:text-green-500 p-1"><i data-lucide="chevron-up" class="w-4 h-4"></i></button>
-                            <span class="text-xs font-black text-slate-600 dark:text-slate-300">${item.votes || 0}</span>
-                            <button onclick="window.vote('${type}', ${item.id}, -1)" class="text-slate-400 hover:text-red-500 p-1"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                    card.innerHTML = `
+                        ${(isAdmin || isLeader) ? `
+                        <div class="absolute top-4 right-4 flex gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="window.openPlannerModal(${plan.id})" class="p-2 bg-slate-100 dark:bg-slate-800 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="window.deletePlan(${plan.id})" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg hover:bg-red-100 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </div>
                         ` : ''}
-                        <div class="text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}">
-                            <i data-lucide="chevron-down"></i>
+                        <div class="md:w-32 flex-shrink-0 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800 pb-3 md:pb-0 md:pr-4">
+                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">${dateStr}</span>
+                            <span class="text-xl font-black text-blue-900 dark:text-blue-400 leading-none">${timeStr}</span>
+                            <span class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-2 bg-slate-100 dark:bg-slate-800 inline-block px-2 py-1 rounded w-fit">${plan.type}</span>
                         </div>
-                    </div>
-                </div>
-            `;
-
-            let bodyHTML = '';
-            if (isExpanded) {
-                bodyHTML += `<div class="mt-4 border-t border-slate-100 dark:border-slate-800 pt-5 bubble-body text-sm text-slate-700 dark:text-slate-300 cursor-text">`;
-                
-                // Submitter Info block
-                bodyHTML += `
-                    <div class="flex flex-wrap gap-x-6 gap-y-2 mb-6 text-xs bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
-                        <div class="flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i> <strong>Submitted By:</strong> ${item.name}</div>
-                        ${item.unit ? `<div class="flex items-center gap-1.5"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400"></i> <strong>Unit:</strong> ${item.unit}</div>` : ''}
-                        ${(isAdmin && item.email) ? `<div class="flex items-center gap-1.5"><i data-lucide="mail" class="w-3.5 h-3.5 text-slate-400"></i> <strong>Email:</strong> <a href="mailto:${item.email}" class="text-blue-600 hover:underline">${item.email}</a></div>` : ''}
-                    </div>
-                `;
-
-                if (type === 'recipes') {
-                    bodyHTML += `
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            <div class="md:col-span-1 bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl">
-                                <h5 class="font-black text-[10px] uppercase tracking-widest text-red-600 dark:text-red-400 mb-3 border-b border-red-200 dark:border-red-900/50 pb-2">Ingredients</h5>
-                                <div class="columns-1 sm:columns-2 md:columns-1 gap-4 text-xs">
-                                    ${window.formatBulletPoints(item.ingredients, true)}
-                                </div>
-                            </div>
-                            <div class="md:col-span-2 p-2">
-                                <h5 class="font-black text-[10px] uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-3 border-b border-blue-200 dark:border-blue-900/50 pb-2">Instructions</h5>
-                                <div class="text-sm leading-relaxed space-y-2">
-                                    ${window.formatBulletPoints(item.body, false)}
-                                </div>
-                                
-                                ${item.notes ? `
-                                    <div class="mt-6 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-xl border-l-4 border-yellow-400">
-                                        <h5 class="font-black text-[9px] uppercase tracking-widest text-yellow-700 dark:text-yellow-500 mb-1">Notes</h5>
-                                        <div class="text-xs italic">${item.notes}</div>
-                                    </div>
-                                ` : ''}
-
-                                ${item.url ? `
-                                    <div class="mt-4 flex items-center gap-2">
-                                        <i data-lucide="link" class="w-4 h-4 text-slate-400"></i>
-                                        <a href="${item.url}" target="_blank" class="text-xs font-bold uppercase tracking-widest text-blue-600 hover:text-blue-800 transition-colors">View Recipe Source</a>
-                                    </div>
-                                ` : ''}
+                        <div class="flex-grow flex flex-col justify-center pr-16">
+                            <h4 class="text-lg font-black text-slate-800 dark:text-slate-100 mb-1">${plan.title}</h4>
+                            <p class="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-normal">${plan.details}</p>
+                            <div class="mt-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                <i data-lucide="user" class="w-3 h-3"></i> Lead: <span class="text-slate-700 dark:text-slate-300">${plan.leader}</span>
                             </div>
                         </div>
                     `;
-                } else {
-                    // Ceremonies, Skits, Games
-                    if (item.brief) {
-                        bodyHTML += `<div class="text-sm italic text-slate-500 border-l-4 border-slate-200 dark:border-slate-700 pl-4 mb-6">${item.brief}</div>`;
-                    }
-                    bodyHTML += `
-                        <div class="p-2">
-                            <h5 class="font-black text-[10px] uppercase tracking-widest text-slate-400 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">Details / Script</h5>
-                            <div class="text-sm leading-relaxed space-y-2">
-                                ${window.formatBulletPoints(item.body, false)}
-                            </div>
-                        </div>
-                    `;
-                }
-
-                // Action Buttons Row
-                bodyHTML += `<div class="mt-6 flex flex-wrap justify-between gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">`;
-                
-                // Left: Export actions
-                bodyHTML += `
-                    <div class="flex gap-2">
-                        <button onclick="window.printResource('${type}', ${item.id})" class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg font-bold uppercase tracking-widest text-[9px] transition-colors flex items-center gap-1.5">
-                            <i data-lucide="printer" class="w-3 h-3"></i> Print
-                        </button>
-                        <button onclick="window.exportResourcePDF('${type}', ${item.id})" class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg font-bold uppercase tracking-widest text-[9px] transition-colors flex items-center gap-1.5">
-                            <i data-lucide="file-down" class="w-3 h-3"></i> PDF
-                        </button>
-                    </div>
-                `;
-
-                // Right: Admin actions
-                if (isAdmin) {
-                    bodyHTML += `<div class="flex gap-2">`;
-                    if (!isApproved) {
-                        bodyHTML += `
-                            <button onclick="window.approveResource('${type}', ${item.id})" class="px-3 py-2 bg-green-100 dark:bg-green-900/30 hover:bg-green-200 text-green-700 dark:text-green-400 rounded-lg font-bold uppercase tracking-widest text-[9px] transition-colors flex items-center gap-1.5 shadow-sm">
-                                <i data-lucide="check-circle" class="w-3 h-3"></i> Approve
-                            </button>
-                        `;
-                    }
-                    bodyHTML += `
-                        <button onclick="window.openResourceModal('${type}', ${item.id})" class="px-3 py-2 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 text-blue-700 dark:text-blue-400 rounded-lg font-bold uppercase tracking-widest text-[9px] transition-colors flex items-center gap-1.5">
-                            <i data-lucide="edit-3" class="w-3 h-3"></i> Edit
-                        </button>
-                        <button onclick="window.deleteResource('${type}', ${item.id})" class="px-3 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 text-red-700 dark:text-red-400 rounded-lg font-bold uppercase tracking-widest text-[9px] transition-colors flex items-center gap-1.5">
-                            <i data-lucide="trash-2" class="w-3 h-3"></i> Delete
-                        </button>
-                    </div>`;
-                }
-                
-                bodyHTML += `</div></div>`;
+                    wrapper.appendChild(card);
+                });
             }
 
-            card.innerHTML = headerHTML + bodyHTML;
-            return card;
-        };
+            container.appendChild(wrapper);
+        }
 
+        window.buildPlannerDropdowns = function(selectedType = '', selectedLeader = '', selectedTime = '') {
+            const timeSelect = document.getElementById('plan-time');
+            const typeSelect = document.getElementById('plan-type');
+            const leaderSelect = document.getElementById('plan-leader');
+            
+            timeSelect.innerHTML = '';
+            for(let h=0; h<24; h++) {
+                for(let m=0; m<60; m+=15) {
+                    const hh = h.toString().padStart(2, '0');
+                    const mm = m.toString().padStart(2, '0');
+                    const val = `${hh}:${mm}`;
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    let dispH = h % 12 || 12;
+                    let ampm = h < 12 ? 'AM' : 'PM';
+                    opt.text = `${dispH}:${mm} ${ampm}`;
+                    if (val === selectedTime) opt.selected = true;
+                    timeSelect.appendChild(opt);
+                }
+            }
 
-        // --- Unified Resource Modal Management ---
-        window.setResourceCost = function(val) {
-            currentResCost = val;
-            const indicators = document.querySelectorAll('.cost-indicator');
-            indicators.forEach((el, index) => {
-                if (index < val) el.classList.add('active');
-                else el.classList.remove('active');
+            typeSelect.innerHTML = '';
+            eventTypes.forEach(t => {
+                const opt = document.createElement('option'); opt.value = t; opt.text = t;
+                if (t === selectedType) opt.selected = true;
+                typeSelect.appendChild(opt);
             });
-        };
 
-        window.openResourceModal = function(type, id = null) {
-            currentResType = type;
-            currentEditId = id;
+            leaderSelect.innerHTML = '';
+            leaders.forEach(l => {
+                const opt = document.createElement('option'); opt.value = l; opt.text = l;
+                if (l === selectedLeader) opt.selected = true;
+                leaderSelect.appendChild(opt);
+            });
+        }
+
+        window.manageArray = function(arrayName, action) {
+            let arr = arrayName === 'eventTypes' ? eventTypes : leaders;
+            const selectId = arrayName === 'eventTypes' ? 'plan-type' : 'plan-leader';
+            const selectEl = document.getElementById(selectId);
             
-            let collection = [];
-            if (type === 'recipes') collection = recipes;
-            if (type === 'ceremonies') collection = ceremonies;
-            if (type === 'skits') collection = skits;
-            if (type === 'games') collection = games;
-
-            const item = id ? collection.find(i => i.id === id) : null;
-
-            // Reset Fields
-            document.getElementById('res-title').value = item ? item.title : '';
-            document.getElementById('res-name').value = item ? item.name : '';
-            document.getElementById('res-email').value = item ? item.email : '';
-            document.getElementById('res-unit').value = item ? item.unit : '';
-            document.getElementById('res-brief').value = item ? item.brief : '';
-            document.getElementById('res-ingredients').value = item ? item.ingredients : '';
-            document.getElementById('res-body').value = item ? item.body : '';
-            document.getElementById('res-notes').value = item ? item.notes : '';
-            document.getElementById('res-url').value = item ? item.url : '';
-            
-            // Toggle Section Visibility based on type
-            const wCatRecipe = document.getElementById('res-cat-recipe-wrapper');
-            const wCatDropdown = document.getElementById('res-cat-dropdown-wrapper');
-            const wCost = document.getElementById('res-cost-wrapper');
-            const wBrief = document.getElementById('res-brief-wrapper');
-            const wIngredients = document.getElementById('res-ingredients-wrapper');
-            const wBody = document.getElementById('res-body-wrapper');
-            const wNotes = document.getElementById('res-notes-wrapper');
-            const wUrl = document.getElementById('res-url-wrapper');
-            const lBody = document.getElementById('res-body-label');
-
-            [wCatRecipe, wCatDropdown, wCost, wBrief, wIngredients, wBody, wNotes, wUrl].forEach(el => el.classList.add('hidden'));
-
-            if (type === 'recipes') {
-                wCatRecipe.classList.remove('hidden');
-                wCost.classList.remove('hidden');
-                wIngredients.classList.remove('hidden');
-                wBody.classList.remove('hidden');
-                wNotes.classList.remove('hidden');
-                wUrl.classList.remove('hidden');
-                lBody.innerText = "Instructions";
-                
-                // Populate Recipe categories
-                document.querySelectorAll('.res-recipe-cat').forEach(cb => {
-                    cb.checked = item && item.cat && item.cat.includes(cb.value);
-                });
-                // Populate Cost
-                window.setResourceCost(item ? item.cost : 0);
-            } else {
-                // Ceremonies, Skits, Games
-                wBody.classList.remove('hidden');
-                wBrief.classList.remove('hidden');
-                
-                if (type === 'ceremonies') {
-                    wCatDropdown.classList.remove('hidden');
-                    lBody.innerText = "Script Body";
-                    const select = document.getElementById('res-cat-dropdown');
-                    select.innerHTML = ['Color Guard', 'Crossover', 'Blue & Gold', 'Flag Retirement', 'Other'].map(o => `<option value="${o}">${o}</option>`).join('');
-                    if (item) select.value = item.cat;
-                } else if (type === 'games') {
-                    wCatDropdown.classList.remove('hidden');
-                    lBody.innerText = "Detailed Description";
-                    const select = document.getElementById('res-cat-dropdown');
-                    select.innerHTML = ['Small group game', 'Large group game', 'Craft', 'Song', 'Other'].map(o => `<option value="${o}">${o}</option>`).join('');
-                    if (item) select.value = item.cat;
-                } else if (type === 'skits') {
-                    lBody.innerText = "Skit Description & Script";
+            if (action === 'add') {
+                const item = prompt(`Enter new ${arrayName === 'eventTypes' ? 'Event Type' : 'Leader'}:`);
+                if (item && item.trim() && !arr.includes(item.trim())) {
+                    arr.push(item.trim());
+                    window.render();
+                    if (useFirebase) window.syncToCloud();
+                    window.buildPlannerDropdowns(
+                        arrayName === 'eventTypes' ? item.trim() : document.getElementById('plan-type').value, 
+                        arrayName === 'leaders' ? item.trim() : document.getElementById('plan-leader').value,
+                        document.getElementById('plan-time').value
+                    );
+                }
+            } else if (action === 'remove') {
+                const val = selectEl.value;
+                if (val && confirm(`Permanently remove "${val}" from the list?`)) {
+                    if(arrayName === 'eventTypes') { eventTypes = eventTypes.filter(i => i !== val); } 
+                    else { leaders = leaders.filter(i => i !== val); }
+                    window.render();
+                    if (useFirebase) window.syncToCloud();
+                    window.buildPlannerDropdowns(document.getElementById('plan-type').value, document.getElementById('plan-leader').value, document.getElementById('plan-time').value);
                 }
             }
+        }
 
-            document.getElementById('resource-modal').classList.replace('hidden', 'flex');
+        window.openPlannerModal = function(id = null) {
+            currentEditId = id;
+            let plan = id ? plans.find(p => p.id === id) : null;
             
-            setTimeout(() => {
-                document.querySelectorAll('#resource-modal textarea').forEach(el => {
-                    if(!el.closest('div').classList.contains('hidden')) window.autoResizeTextarea(el);
-                });
-            }, 10);
-        };
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
 
-        window.closeResourceModal = () => document.getElementById('resource-modal').classList.replace('flex', 'hidden');
-
-        window.saveResource = function() {
-            const title = document.getElementById('res-title').value.trim();
-            const name = document.getElementById('res-name').value.trim();
+            document.getElementById('plan-modal-title').innerHTML = `<i data-lucide="calendar" class="w-5 h-5 text-yellow-500"></i> ${plan ? 'Edit Event' : 'New Event'}`;
+            document.getElementById('plan-date').value = plan ? plan.date : todayStr;
+            document.getElementById('plan-title').value = plan ? plan.title : '';
+            document.getElementById('plan-details').value = plan ? plan.details : '';
             
-            if (!title || !name) {
-                window.showToast("Title and Submitter Name are required", true);
-                return;
-            }
+            window.buildPlannerDropdowns(plan?.type, plan?.leader, plan?.time || '18:00');
+            
+            document.getElementById('planner-modal').classList.replace('hidden', 'flex');
+            if (window.lucide) window.lucide.createIcons();
+            
+            setTimeout(() => { document.querySelectorAll('#planner-modal textarea').forEach(el => window.autoResizeTextarea(el)); }, 10);
+        }
 
-            const item = {
-                id: currentEditId || Date.now(),
-                createdAt: currentEditId ? undefined : Date.now(), // Preserve creation date if editing
-                approved: isAdmin ? true : (currentEditId ? undefined : false), // Auto-approve if admin, leave alone if editing existing, false if new user submission
-                title: title,
-                name: name,
-                email: document.getElementById('res-email').value.trim(),
-                unit: document.getElementById('res-unit').value.trim(),
-                brief: document.getElementById('res-brief').value.trim(),
-                ingredients: document.getElementById('res-ingredients').value.trim(),
-                body: document.getElementById('res-body').value.trim(),
-                notes: document.getElementById('res-notes').value.trim(),
-                url: document.getElementById('res-url').value.trim(),
-            };
+        window.closePlannerModal = () => document.getElementById('planner-modal').classList.replace('flex', 'hidden');
 
-            // Capture type-specific fields
-            if (currentResType === 'recipes') {
-                const checked = Array.from(document.querySelectorAll('.res-recipe-cat:checked')).map(cb => cb.value);
-                item.cat = checked;
-                item.cost = currentResCost;
-                if(!currentEditId) item.votes = 0;
-            } else if (currentResType === 'ceremonies' || currentResType === 'games') {
-                item.cat = document.getElementById('res-cat-dropdown').value;
-            } else if (currentResType === 'skits') {
-                item.cat = 'Skit';
-            }
+        window.savePlan = function() {
+            const date = document.getElementById('plan-date').value;
+            const time = document.getElementById('plan-time').value;
+            const type = document.getElementById('plan-type').value;
+            const title = document.getElementById('plan-title').value;
+            const details = document.getElementById('plan-details').value;
+            const leader = document.getElementById('plan-leader').value;
 
-            // Save to correct collection
-            let collection;
-            if (currentResType === 'recipes') collection = recipes;
-            if (currentResType === 'ceremonies') collection = ceremonies;
-            if (currentResType === 'skits') collection = skits;
-            if (currentResType === 'games') collection = games;
+            if(!title || !date) { window.showToast("Date and Title are required", true); return; }
+
+            const currentTimestamp = Date.now();
 
             if (currentEditId) {
-                const idx = collection.findIndex(i => i.id === currentEditId);
-                if (idx > -1) {
-                    // merge so we don't overwrite votes, creationdate, approval status
-                    collection[idx] = { ...collection[idx], ...item, approved: collection[idx].approved || isAdmin };
-                }
+                const p = plans.find(p => p.id === currentEditId);
+                if (p) { p.date = date; p.time = time; p.type = type; p.title = title; p.details = details; p.leader = leader; p.editedAt = currentTimestamp; }
             } else {
-                collection.push(item);
-                if(!isAdmin) window.showToast("Submitted! Waiting for admin approval.");
+                plans.push({ id: currentTimestamp, createdAt: currentTimestamp, date, time, type, title, details, leader });
             }
 
-            window.closeResourceModal();
-            window.render();
-            if (useFirebase) window.syncToCloud();
+            window.closePlannerModal(); window.render(); if (useFirebase) window.syncToCloud();
+        }
+
+        window.deletePlan = function(id) {
+            if(confirm("Remove this event from the planner?")) { plans = plans.filter(p => p.id !== id); window.render(); if (useFirebase) window.syncToCloud(); }
+        }
+
+        // --- Render View: Links ---
+        window.renderLinksView = function(container) {
+            const categoryWrapper = document.createElement('div');
+            categoryWrapper.id = 'category-wrapper';
+            categoryWrapper.className = 'flex flex-wrap justify-center gap-6 md:gap-8 items-start w-full';
+
+            categories.forEach(cat => {
+                const section = document.createElement('div');
+                section.className = 'category-section w-full sm:w-[calc(50%-1.5rem)] lg:w-[calc(33.333%-2rem)] min-w-[300px] max-w-lg bg-slate-100 dark:bg-slate-800 rounded-[3rem] p-6 sm:p-8 shadow-xl border border-white dark:border-slate-700 flex flex-col relative';
+                section.dataset.id = cat.id;
+
+                const headerFlex = document.createElement('div');
+                headerFlex.className = 'flex items-center justify-between gap-4 mb-6 px-2';
+                headerFlex.innerHTML = `
+                    <h2 class="text-blue-900 dark:text-blue-400 font-black uppercase tracking-widest text-lg">${cat.title}</h2>
+                    ${isEditing ? `
+                        <div class="flex gap-2 no-drag">
+                            <button class="category-drag-handle p-2 bg-white dark:bg-slate-900 text-slate-400 hover:text-blue-600 rounded-xl shadow-sm cursor-move"><i data-lucide="grip-horizontal" class="w-4 h-4 pointer-events-none"></i></button>
+                            <button onclick="window.editCategory('${cat.id}')" class="p-2 bg-white dark:bg-slate-900 text-slate-400 hover:text-blue-600 rounded-xl shadow-sm"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="window.deleteCategory('${cat.id}')" class="p-2 bg-white dark:bg-slate-900 text-slate-400 hover:text-red-600 rounded-xl shadow-sm"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    ` : ''}
+                `;
+                section.appendChild(headerFlex);
+
+                const grid = document.createElement('div');
+                grid.className = 'link-grid grid grid-cols-3 gap-3 sm:gap-4 min-h-[120px]';
+                grid.dataset.categoryId = cat.id;
+
+                const catLinks = links.filter(l => l.categoryId === cat.id);
+                catLinks.forEach(link => {
+                    const card = document.createElement('div');
+                    card.className = `link-card relative group ${isEditing ? 'cursor-move' : ''}`;
+                    card.dataset.id = link.id;
+
+                    const isInternal = link.url && link.url.startsWith('#');
+                    const targetUrl = isEditing ? 'javascript:void(0)' : (isInternal ? 'javascript:void(0)' : link.url);
+                    const onclickAttr = (!isEditing && isInternal) ? `onclick="window.switchView('${link.url.substring(1)}'); return false;"` : '';
+                    
+                    const bgStyle = link.customBg && link.bgColor ? `background-color: ${link.bgColor};` : '';
+
+                    card.innerHTML = `
+                        ${isEditing ? `
+                            <div class="absolute top-2 right-2 z-20 flex flex-col gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity no-drag cursor-default">
+                                <button onclick="window.editLink(${link.id})" class="p-1.5 bg-blue-600 text-white rounded-lg shadow-lg hover:scale-110 transition-transform"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+                                <button onclick="window.deleteLink(${link.id})" class="p-1.5 bg-red-600 text-white rounded-lg shadow-lg hover:scale-110 transition-transform"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                            </div>
+                        ` : ''}
+                        <a href="${targetUrl}" ${onclickAttr} target="${isInternal ? '_self' : '_blank'}" class="scout-card p-3 md:p-4 flex flex-col items-center justify-start text-center block h-full pointer-events-none">
+                            <div class="image-viewport mb-2 sm:mb-3" style="${bgStyle}">
+                                <img src="${link.img || 'https://www.scouting.org/wp-content/uploads/2018/05/cub-scouts-logo.png'}" style="transform: translate(${link.x || 0}%, ${link.y || 0}%) scale(${link.zoom || 1}); opacity: ${link.img ? 1 : 0.1}" class="absolute inset-0 w-full h-full object-contain pointer-events-none">
+                            </div>
+                            <span class="text-blue-900 dark:text-slate-200 font-extrabold uppercase tracking-widest text-[9px] sm:text-[10px] line-clamp-2 leading-tight flex items-center gap-1 mt-auto">
+                                ${link.title}
+                            </span>
+                        </a>
+                    `;
+                    if (!isEditing) card.querySelector('a').classList.remove('pointer-events-none');
+                    grid.appendChild(card);
+                });
+
+                if (isEditing) {
+                    const addBtn = document.createElement('button');
+                    addBtn.onclick = () => window.addNewLink(cat.id);
+                    addBtn.className = 'no-drag scout-card border-4 border-dashed border-slate-300 dark:border-slate-700 bg-transparent flex flex-col items-center justify-center p-3 opacity-50 hover:opacity-100 hover:border-blue-500 cursor-pointer transition-all h-full min-h-[120px] w-full';
+                    addBtn.innerHTML = '<i data-lucide="plus" class="w-8 h-8 text-slate-400 mb-2 pointer-events-none"></i><span class="font-black text-slate-400 uppercase tracking-widest pointer-events-none text-[9px] leading-tight text-center">Add Link</span>';
+                    grid.appendChild(addBtn);
+                }
+
+                section.appendChild(grid);
+                categoryWrapper.appendChild(section);
+            });
+
+            container.appendChild(categoryWrapper);
+
+            if (isEditing) {
+                const addCatWrapper = document.createElement('div');
+                addCatWrapper.className = 'mt-12 flex justify-center w-full';
+                addCatWrapper.innerHTML = `<button onclick="window.addNewCategory()" class="px-8 py-4 bg-white dark:bg-slate-900 border-4 border-dashed border-slate-300 dark:border-slate-700 rounded-[2rem] text-slate-400 font-black uppercase tracking-widest hover:border-blue-500 hover:text-blue-500 transition-colors flex items-center gap-3 shadow-lg"><i data-lucide="plus-circle" class="w-6 h-6"></i> Add New Category</button>`;
+                container.appendChild(addCatWrapper);
+            }
+
+            if (isEditing && window.Sortable) {
+                new Sortable(document.getElementById('category-wrapper'), {
+                    animation: 250, handle: '.category-drag-handle',
+                    onEnd: function() {
+                        const newCategories = [];
+                        document.querySelectorAll('.category-section').forEach(el => {
+                            const cat = categories.find(c => c.id === el.dataset.id);
+                            if (cat) newCategories.push(cat);
+                        });
+                        categories = newCategories; 
+                        if (useFirebase) window.syncToCloud();
+                    }
+                });
+                document.querySelectorAll('.link-grid').forEach(grid => {
+                    new Sortable(grid, {
+                        group: 'shared-links', animation: 250, filter: '.no-drag', preventOnFilter: false,
+                        onMove: (evt) => evt.related.className.indexOf('no-drag') === -1,
+                        onEnd: function() {
+                            const newLinks = [];
+                            document.querySelectorAll('.link-grid').forEach(g => {
+                                const catId = g.dataset.categoryId;
+                                g.querySelectorAll('.link-card').forEach(card => {
+                                    const id = parseInt(card.dataset.id);
+                                    const linkObj = links.find(l => l.id === id);
+                                    if (linkObj) { linkObj.categoryId = catId; newLinks.push(linkObj); }
+                                });
+                            });
+                            links = newLinks; 
+                            if (useFirebase) window.syncToCloud();
+                        }
+                    });
+                });
+            }
+        }
+
+        // --- Auth & Generic Actions ---
+        window.handleAuthClick = function() {
+            if (isAdmin || isLeader) {
+                isAdmin = false; isLeader = false; isEditing = false; currentView = 'links';
+                window.render();
+            } else {
+                document.getElementById('login-password').value = '';
+                document.getElementById('login-password').type = 'password';
+                document.getElementById('toggle-password-btn').innerHTML = '<i data-lucide="eye" class="w-5 h-5"></i>';
+                if (window.lucide) window.lucide.createIcons();
+                document.getElementById('login-modal').classList.replace('hidden', 'flex');
+                setTimeout(() => document.getElementById('login-password').focus(), 100);
+            }
         };
 
-        // --- Core Init ---
-        const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-        if (appleTitle) appleTitle.setAttribute("content", settings.title || 'Scout Hub');
+        window.closeLoginModal = () => document.getElementById('login-modal').classList.replace('flex', 'hidden');
 
-        const iconUrl = settings.tabIconUrl || settings.logo || 'https://www.scouting.org/wp-content/uploads/2018/05/cub-scouts-logo.png';
-        window.applyDynamicFavicon(iconUrl, settings.tabIconZoom || 1, settings.tabIconX || 0, settings.tabIconY || 0);
-        
+        window.submitLogin = function() {
+            const pass = document.getElementById('login-password').value;
+            if (pass === 'CoRf121') {
+                isAdmin = true; isLeader = true; isEditing = false;
+                window.closeLoginModal(); window.render(); window.showToast("Admin Mode Unlocked");
+            } else if (pass.toLowerCase() === 'plan121') {
+                isAdmin = false; isLeader = true; isEditing = false; currentView = 'planner';
+                window.closeLoginModal(); window.render(); window.showToast("Planner View Unlocked");
+            } else {
+                window.showToast("Incorrect Access Key", true);
+            }
+        };
+
+        window.togglePasswordVisibility = function() {
+            const input = document.getElementById('login-password');
+            const btn = document.getElementById('toggle-password-btn');
+            if (input.type === 'password') { input.type = 'text'; btn.innerHTML = '<i data-lucide="eye-off" class="w-4 h-4"></i>'; }
+            else { input.type = 'password'; btn.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i>'; }
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.toggleAdminMode = function() { isEditing = !isEditing; window.render(); };
+        window.toggleDarkMode = function() { document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light'); window.render(); };
+
+        // --- Links/Identity Modals & Dynamic Form Logic ---
+        function setModalVisibility(type) {
+            const mGrid = document.getElementById('modal-grid'), 
+                  fTitle = document.getElementById('field-title'),
+                  fUrl = document.getElementById('field-url'), 
+                  fImg = document.getElementById('field-image'), 
+                  fCat = document.getElementById('field-category'), 
+                  fPrev = document.getElementById('field-preview'), 
+                  fZoom = document.getElementById('field-zoom'),
+                  fBtn = document.getElementById('modal-save-btn'),
+                  fHelp = document.getElementById('app-icon-help-text'),
+                  fHeaderType = document.getElementById('field-header-type'),
+                  fHeaderColors = document.getElementById('field-header-colors'),
+                  fHeaderImage = document.getElementById('field-header-image'),
+                  fHeaderTextColors = document.getElementById('field-header-text-colors'),
+                  fHeaderLinkSettings = document.getElementById('field-header-link-settings'),
+                  fLinkBg = document.getElementById('field-link-bg');
+            
+            [fTitle, fUrl, fImg, fCat, fPrev, fZoom, fHeaderType, fHeaderColors, fHeaderImage, fHeaderTextColors, fHeaderLinkSettings, fLinkBg].forEach(el => {
+                if(el) el.classList.remove('hidden');
+            });
+            if (fHelp) fHelp.classList.add('hidden');
+            
+            mGrid.classList.add('md:grid-cols-2'); mGrid.classList.remove('grid-cols-1');
+            fBtn.classList.replace('w-auto', 'w-full');
+
+            const previewBox = document.getElementById('preview-box');
+            previewBox.className = 'w-40 h-40 md:w-48 md:h-48 bg-slate-100 dark:bg-slate-800 rounded-[2rem] overflow-hidden relative border-[6px] border-slate-200 dark:border-slate-700 shadow-xl cursor-move active:cursor-grabbing';
+            previewBox.style.webkitMaskImage = '-webkit-radial-gradient(white, black)';
+            previewBox.style.maskImage = 'radial-gradient(white, black)';
+
+            if (type === 'category') {
+                mGrid.classList.remove('md:grid-cols-2'); mGrid.classList.add('grid-cols-1');
+                [fUrl, fImg, fCat, fPrev, fZoom, fHeaderType, fHeaderColors, fHeaderImage, fHeaderTextColors, fHeaderLinkSettings, fLinkBg].forEach(el => { if(el) el.classList.add('hidden'); });
+                fBtn.classList.replace('w-full', 'w-auto');
+            } else if (type === 'link') {
+                [fHeaderType, fHeaderColors, fHeaderImage, fHeaderTextColors, fHeaderLinkSettings].forEach(el => { if(el) el.classList.add('hidden'); });
+            } else if (type === 'header') {
+                [fCat, fHeaderType, fHeaderColors, fHeaderImage, fLinkBg].forEach(el => { if(el) el.classList.add('hidden'); });
+                if (fHeaderTextColors) { fHeaderTextColors.classList.add('flex'); fHeaderTextColors.classList.remove('hidden'); }
+                if (fHeaderLinkSettings) { fHeaderLinkSettings.classList.add('flex'); fHeaderLinkSettings.classList.remove('hidden'); }
+            } else if (type === 'app-icon') {
+                [fTitle, fUrl, fCat, fHeaderType, fHeaderColors, fHeaderImage, fHeaderTextColors, fHeaderLinkSettings, fLinkBg].forEach(el => { if(el) el.classList.add('hidden'); });
+                if (fHelp) fHelp.classList.remove('hidden');
+            } else if (type === 'header-design') {
+                [fTitle, fUrl, fCat, fImg, fLinkBg].forEach(el => { if(el) el.classList.add('hidden'); });
+                if (fHeaderTextColors) { fHeaderTextColors.classList.add('flex'); fHeaderTextColors.classList.remove('hidden'); }
+                if (fHeaderLinkSettings) { fHeaderLinkSettings.classList.add('flex'); fHeaderLinkSettings.classList.remove('hidden'); }
+                
+                previewBox.className = 'w-full h-24 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden relative border-[6px] border-slate-200 dark:border-slate-700 shadow-xl cursor-move active:cursor-grabbing';
+                previewBox.style.webkitMaskImage = 'none';
+                previewBox.style.maskImage = 'none';
+            }
+        }
+
+        window.toggleLinkType = function() {
+            const type = document.getElementById('input-link-type').value;
+            if (type === 'internal') {
+                document.getElementById('input-url').classList.add('hidden');
+                document.getElementById('input-internal-target').classList.remove('hidden');
+            } else {
+                document.getElementById('input-url').classList.remove('hidden');
+                document.getElementById('input-internal-target').classList.add('hidden');
+            }
+        };
+
+        window.openHeaderModal = function() {
+            currentEditId = 'header'; currentEditType = 'header';
+            document.getElementById('modal-title').innerText = "Identity Settings"; 
+            document.getElementById('label-url').innerText = "Subtitle";
+            document.getElementById('label-image').innerText = "Main Logo URL";
+            document.getElementById('input-title').value = settings.title || ''; 
+            document.getElementById('input-url').value = settings.subtitle || '';
+            document.getElementById('input-image').value = settings.logo || ''; 
+            document.getElementById('input-zoom').value = settings.zoom || 1;
+
+            document.getElementById('input-override-colors').checked = !!settings.overrideColors;
+            document.getElementById('color-pickers-wrapper').style.display = settings.overrideColors ? 'grid' : 'none';
+            document.getElementById('input-title-color').value = settings.titleColor || '#1e3a8a';
+            document.getElementById('input-subtitle-color').value = settings.subtitleColor || '#64748b';
+            
+            document.getElementById('input-show-header-link').checked = settings.showHeaderLink !== false;
+            document.getElementById('input-header-link-text').value = settings.headerLinkText || 'my.scouting.org';
+            document.getElementById('input-header-link-url').value = settings.headerLinkUrl || 'https://my.scouting.org';
+            
+            document.getElementById('input-link-type').parentElement.classList.add('hidden');
+            document.getElementById('input-url').classList.remove('hidden');
+            document.getElementById('input-internal-target').classList.add('hidden');
+
+            setModalVisibility('header'); 
+            window.updatePreview(); 
+            document.getElementById('modal-overlay').classList.replace('hidden', 'flex');
+        };
+
+        window.openAppIconModal = function() {
+            currentEditId = 'app-icon'; currentEditType = 'app-icon';
+            document.getElementById('modal-title').innerText = "Browser Tab & App Icon"; 
+            document.getElementById('label-image').innerText = "Icon Image URL";
+            document.getElementById('input-image').value = settings.tabIconUrl || ''; 
+            document.getElementById('input-zoom').value = settings.tabIconZoom || 1;
+            
+            setModalVisibility('app-icon'); 
+            window.updatePreview(); 
+            document.getElementById('modal-overlay').classList.replace('hidden', 'flex');
+        };
+
+        window.openHeaderDesignModal = function() {
+            currentEditId = 'header-design'; currentEditType = 'header-design';
+            document.getElementById('modal-title').innerText = "Header Background Design"; 
+            
+            document.getElementById('input-header-bg-type').value = settings.headerBgType || 'default';
+            document.getElementById('input-header-bg-color').value = settings.headerBgColor || '#ffffff';
+            document.getElementById('input-header-border-color').value = settings.headerBorderColor || '#facc15';
+            document.getElementById('input-header-bg-image').value = settings.headerBgImage || '';
+            document.getElementById('input-zoom').value = settings.headerBgZoom || 1;
+            
+            document.getElementById('input-override-colors').checked = !!settings.overrideColors;
+            document.getElementById('color-pickers-wrapper').style.display = settings.overrideColors ? 'grid' : 'none';
+            document.getElementById('input-title-color').value = settings.titleColor || '#1e3a8a';
+            document.getElementById('input-subtitle-color').value = settings.subtitleColor || '#64748b';
+            
+            document.getElementById('input-show-header-link').checked = settings.showHeaderLink !== false;
+            document.getElementById('input-header-link-text').value = settings.headerLinkText || 'my.scouting.org';
+            document.getElementById('input-header-link-url').value = settings.headerLinkUrl || 'https://my.scouting.org';
+            
+            setModalVisibility('header-design'); 
+            window.updatePreview(); 
+            document.getElementById('modal-overlay').classList.replace('hidden', 'flex');
+        };
+
+        window.editLink = function(id) {
+            currentEditId = id; currentEditType = 'link'; const link = links.find(l => l.id === id);
+            document.getElementById('modal-title').innerText = "Tile Settings"; 
+            document.getElementById('label-url').innerText = "Target / URL";
+            document.getElementById('label-image').innerText = "Image Source URL";
+            document.getElementById('input-title').value = link.title; 
+            document.getElementById('input-image').value = link.img; 
+            document.getElementById('input-zoom').value = link.zoom || 1;
+            
+            document.getElementById('input-link-custom-bg-enable').checked = !!link.customBg;
+            document.getElementById('input-link-bg').disabled = !link.customBg;
+            document.getElementById('input-link-bg').value = link.bgColor || '#ffffff';
+            
+            document.getElementById('input-link-type').parentElement.classList.remove('hidden');
+
+            const isInternal = link.url && link.url.startsWith('#');
+            document.getElementById('input-link-type').value = isInternal ? 'internal' : 'external';
+            if(isInternal) {
+                document.getElementById('input-internal-target').value = link.url;
+            } else {
+                document.getElementById('input-url').value = link.url;
+            }
+            window.toggleLinkType();
+
+            const select = document.getElementById('input-category'); select.innerHTML = '';
+            categories.forEach(cat => { const opt = document.createElement('option'); opt.value = cat.id; opt.innerText = cat.title; if (cat.id === link.categoryId) opt.selected = true; select.appendChild(opt); });
+            setModalVisibility('link'); window.updatePreview(); document.getElementById('modal-overlay').classList.replace('hidden', 'flex');
+        };
+
+        window.addNewLink = function(categoryId) {
+            const newId = Date.now(); links.push({ id: newId, title: 'New Link', url: '', img: '', zoom: 1, x: 0, y: 0, categoryId: categoryId, customBg: false, bgColor: '#ffffff' }); window.editLink(newId);
+        };
+
+        window.deleteLink = function(id) {
+            if (confirm("Remove this tile?")) { links = links.filter(l => l.id !== id); window.render(); if (useFirebase) window.syncToCloud(); }
+        };
+
+        window.editCategory = function(id) {
+            currentEditId = id; currentEditType = 'category'; const cat = categories.find(c => c.id === id);
+            document.getElementById('modal-title').innerText = "Category Name"; document.getElementById('input-title').value = cat.title;
+            setModalVisibility('category'); document.getElementById('modal-overlay').classList.replace('hidden', 'flex');
+        }
+
+        window.addNewCategory = function() {
+            const newId = 'cat_' + Date.now(); categories.push({ id: newId, title: 'New Category' }); window.editCategory(newId);
+        }
+
+        window.deleteCategory = function(id) {
+            if (confirm("Delete this category AND all links inside it?")) { categories = categories.filter(c => c.id !== id); links = links.filter(l => l.categoryId !== id); window.render(); if (useFirebase) window.syncToCloud(); }
+        }
+
+        window.closeModal = () => document.getElementById('modal-overlay').classList.replace('flex', 'hidden');
+
+        window.updatePreview = function() {
+            if (currentEditType === 'category') return;
+            
+            const img = document.getElementById('preview-img'); 
+            const previewBox = document.getElementById('preview-box');
+            const zoom = document.getElementById('input-zoom').value || 1;
+            
+            if (currentEditType === 'header-design') {
+                const bgType = document.getElementById('input-header-bg-type').value;
+                const bgColor = document.getElementById('input-header-bg-color').value;
+                const bgImage = document.getElementById('input-header-bg-image').value;
+                const borderColor = document.getElementById('input-header-border-color').value;
+
+                document.getElementById('field-header-colors').classList.remove('hidden');
+                document.getElementById('input-header-bg-color').parentElement.style.display = bgType === 'color' ? 'block' : 'none';
+                document.getElementById('field-header-image').style.display = bgType === 'image' ? 'block' : 'none';
+                document.getElementById('field-zoom').style.display = bgType === 'image' ? 'block' : 'none';
+
+                previewBox.style.borderColor = borderColor;
+
+                if (bgType === 'color') {
+                    previewBox.style.backgroundColor = bgColor;
+                    img.style.display = 'none';
+                } else if (bgType === 'image') {
+                    previewBox.style.backgroundColor = '#f1f5f9';
+                    img.style.display = 'block';
+                    img.src = bgImage || 'https://www.scouting.org/wp-content/uploads/2018/05/cub-scouts-logo.png';
+                    img.className = "absolute inset-0 w-full h-full object-cover pointer-events-none";
+                    img.style.transform = `translate(${settings.headerBgX || 0}%, ${settings.headerBgY || 0}%) scale(${zoom})`;
+                } else {
+                    previewBox.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff';
+                    img.style.display = 'none';
+                }
+            } else {
+                img.style.display = 'block';
+                img.className = "absolute inset-0 w-full h-full object-contain pointer-events-none";
+                img.src = document.getElementById('input-image').value || 'https://www.scouting.org/wp-content/uploads/2018/05/cub-scouts-logo.png';
+                let obj = currentEditType === 'header' ? settings : (currentEditType === 'app-icon' ? settings : links.find(l => l.id === currentEditId));
+                if (obj) {
+                    let currentX = currentEditType === 'app-icon' ? (obj.tabIconX || 0) : (obj.x || 0);
+                    let currentY = currentEditType === 'app-icon' ? (obj.tabIconY || 0) : (obj.y || 0);
+                    img.style.transform = `translate(${currentX}%, ${currentY}%) scale(${zoom})`;
+                }
+
+                if (currentEditType === 'link') {
+                    const useBg = document.getElementById('input-link-custom-bg-enable').checked;
+                    const bgCol = document.getElementById('input-link-bg').value;
+                    previewBox.style.backgroundColor = useBg ? bgCol : (document.documentElement.classList.contains('dark') ? '#1e293b' : '#f1f5f9');
+                } else if (currentEditType === 'app-icon' || currentEditType === 'header') {
+                    previewBox.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#1e293b' : '#f1f5f9';
+                }
+            }
+            
+            document.getElementById('zoom-val').innerText = parseFloat(zoom).toFixed(2) + 'x';
+        };
+
+        window.saveChanges = function() {
+            if (currentEditType === 'header') {
+                settings.title = document.getElementById('input-title').value; 
+                settings.subtitle = document.getElementById('input-url').value; 
+                settings.logo = document.getElementById('input-image').value; 
+                settings.zoom = parseFloat(document.getElementById('input-zoom').value) || 1;
+                
+                settings.overrideColors = document.getElementById('input-override-colors').checked;
+                settings.titleColor = document.getElementById('input-title-color').value;
+                settings.subtitleColor = document.getElementById('input-subtitle-color').value;
+                
+                settings.showHeaderLink = document.getElementById('input-show-header-link').checked;
+                settings.headerLinkText = document.getElementById('input-header-link-text').value;
+                settings.headerLinkUrl = document.getElementById('input-header-link-url').value;
+            } else if (currentEditType === 'app-icon') {
+                settings.tabIconUrl = document.getElementById('input-image').value;
+                settings.tabIconZoom = parseFloat(document.getElementById('input-zoom').value) || 1;
+            } else if (currentEditType === 'header-design') {
+                settings.headerBgType = document.getElementById('input-header-bg-type').value;
+                settings.headerBgColor = document.getElementById('input-header-bg-color').value;
+                settings.headerBorderColor = document.getElementById('input-header-border-color').value;
+                settings.headerBgImage = document.getElementById('input-header-bg-image').value;
+                settings.headerBgZoom = parseFloat(document.getElementById('input-zoom').value) || 1;
+                
+                settings.overrideColors = document.getElementById('input-override-colors').checked;
+                settings.titleColor = document.getElementById('input-title-color').value;
+                settings.subtitleColor = document.getElementById('input-subtitle-color').value;
+                
+                settings.showHeaderLink = document.getElementById('input-show-header-link').checked;
+                settings.headerLinkText = document.getElementById('input-header-link-text').value;
+                settings.headerLinkUrl = document.getElementById('input-header-link-url').value;
+            } else if (currentEditType === 'category') {
+                const cat = categories.find(c => c.id === currentEditId); if (cat) cat.title = document.getElementById('input-title').value || 'Unnamed Category';
+            } else if (currentEditType === 'link') {
+                const link = links.find(l => l.id === currentEditId);
+                if (link) {
+                    link.title = document.getElementById('input-title').value;
+                    let type = document.getElementById('input-link-type').value;
+                    let safeUrl = '';
+                    if (type === 'internal') {
+                        safeUrl = document.getElementById('input-internal-target').value;
+                    } else {
+                        safeUrl = document.getElementById('input-url').value.trim(); 
+                        if (safeUrl && !safeUrl.startsWith('http') && !safeUrl.startsWith('#')) safeUrl = 'https://' + safeUrl;
+                    }
+                    link.url = safeUrl; 
+                    link.categoryId = document.getElementById('input-category').value; 
+                    link.img = document.getElementById('input-image').value; 
+                    link.zoom = document.getElementById('input-zoom').value;
+                    link.customBg = document.getElementById('input-link-custom-bg-enable').checked;
+                    link.bgColor = document.getElementById('input-link-bg').value;
+                }
+            }
+            window.closeModal(); 
+            window.render(); 
+            if (useFirebase) {
+                window.syncToCloud(); 
+            }
+        };
+
+        // --- Event Listeners & Init ---
         window.onload = () => window.render();
 
-        // Mouse Drag Events for preview boxes
         document.getElementById('input-image').addEventListener('input', window.updatePreview);
         document.getElementById('input-zoom').addEventListener('input', window.updatePreview);
 
-        const previewBox = document.getElementById('preview-box');
-        previewBox.addEventListener('mousedown', (e) => { 
+        const previewBoxEl = document.getElementById('preview-box');
+        previewBoxEl.addEventListener('mousedown', (e) => { 
             if (currentEditType === 'category') return; 
             isDragging = true; startX = e.clientX; startY = e.clientY; 
         });
@@ -1588,6 +2329,7 @@
             }
         });
         window.addEventListener('mouseup', () => isDragging = false);
+
     </script>
 </body>
 </html>
