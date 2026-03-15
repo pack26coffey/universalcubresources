@@ -119,7 +119,6 @@
         </div>
     </div>
 
-    <!-- Login Modal -->
     <div id="login-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[200] hidden items-center justify-center p-6">
         <div class="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl modal-animate border-b-8 border-yellow-400">
             <div class="bg-blue-900 p-5 text-white flex justify-between items-center">
@@ -140,7 +139,6 @@
         </div>
     </div>
 
-    <!-- Identity/Links Modal -->
     <div id="modal-overlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[100] hidden items-center justify-center p-4 sm:p-6">
         <div class="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl modal-animate border-b-8 border-blue-900">
             <div class="bg-blue-900 p-4 sm:p-5 text-white flex justify-between items-center">
@@ -236,7 +234,6 @@
         </div>
     </div>
 
-    <!-- Planner Edit Modal -->
     <div id="planner-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[150] hidden items-center justify-center p-4 sm:p-6 overflow-y-auto">
         <div class="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl modal-animate border-b-8 border-yellow-500 my-auto">
             <div class="bg-slate-800 p-4 sm:p-5 text-white flex justify-between items-center border-b border-slate-700">
@@ -265,7 +262,6 @@
         </div>
     </div>
 
-    <!-- Volunteer Portal Edit Modal -->
     <div id="volunteer-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[150] hidden items-center justify-center p-4 sm:p-6 overflow-y-auto">
         <div class="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl modal-animate border-b-8 border-red-600 my-auto">
             <div class="bg-slate-800 p-4 sm:p-5 text-white flex justify-between items-center border-b border-slate-700">
@@ -281,7 +277,6 @@
         </div>
     </div>
 
-    <!-- Committee Note Edit Modal -->
     <div id="committee-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[150] hidden items-center justify-center p-4 sm:p-6 overflow-y-auto">
         <div class="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl modal-animate border-b-8 border-blue-600 my-auto" id="comm-modal-panel">
             <div class="bg-slate-800 p-4 sm:p-5 text-white flex justify-between items-center border-b border-slate-700 sticky top-0 z-10">
@@ -314,7 +309,6 @@
         </div>
     </div>
 
-    <!-- Universal Resource Modal (Recipes, Ceremonies, Skits, Games) -->
     <div id="resource-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[150] hidden items-center justify-center p-4 sm:p-6 overflow-y-auto">
         <div class="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl modal-animate border-b-8 border-blue-600 my-auto">
             <div class="bg-slate-800 p-4 sm:p-5 text-white flex justify-between items-center border-b border-slate-700 sticky top-0 z-10">
@@ -351,11 +345,22 @@
         </div>
     </div>
 
-    <!-- Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { initializeFirestore, memoryLocalCache, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+
+         window.__app_id = "1:1027621236936:web:aa023f54ddb6938c4d75fd";
+         window.__firebase_config = {
+  apiKey: "AIzaSyDco3YdquBXu90sItwIJ9GLvof8_fvUhzo",
+  authDomain: "universal-cub.firebaseapp.com",
+  projectId: "universal-cub",
+  storageBucket: "universal-cub.firebasestorage.app",
+  messagingSenderId: "1027621236936",
+  appId: "1:1027621236936:web:aa023f54ddb6938c4d75fd"
+};
+
 
         window.autoResizeTextarea = function(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
 
@@ -518,7 +523,12 @@
             localStorage.setItem('scout_updatedAt', localUpdatedAt.toString());
         };
 
-        window.switchView = function(view) { currentView = view; window.render(); }
+        window.switchView = function(view) { 
+            expandedResources = []; 
+            expandedCommNotes = []; 
+            currentView = view; 
+            window.render(); 
+        }
 
         // --- Generic Resource Rendering Engine (Recipes, Ceremonies, Skits, Games) ---
         window.renderGenericResource = function(container, type, dataArray, title, icon, colorBase) {
@@ -816,3 +826,4 @@
     </script>
 </body>
 </html>
+
