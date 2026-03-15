@@ -506,9 +506,20 @@
 
             if (window.lucide) window.lucide.createIcons();
             
-            ['links', 'settings', 'categories', 'plans', 'committee', 'event_types', 'leaders', 'volunteers', 'recipes', 'ceremonies', 'skits', 'games'].forEach(k => {
-                localStorage.setItem(`scout_${k}`, JSON.stringify(eval(k.includes('_') ? k.replace('_', 'T') : k))); 
-            });
+            // Replaced the fragile save loop with explicit, crash-proof save commands
+            localStorage.setItem('scout_links', JSON.stringify(links));
+            localStorage.setItem('scout_settings', JSON.stringify(settings));
+            localStorage.setItem('scout_categories', JSON.stringify(categories));
+            localStorage.setItem('scout_plans', JSON.stringify(plans));
+            localStorage.setItem('scout_committee', JSON.stringify(committeeNotes));
+            localStorage.setItem('scout_event_types', JSON.stringify(eventTypes));
+            localStorage.setItem('scout_leaders', JSON.stringify(leaders));
+            localStorage.setItem('scout_volunteers', JSON.stringify(volunteers));
+            localStorage.setItem('scout_recipes', JSON.stringify(recipes));
+            localStorage.setItem('scout_ceremonies', JSON.stringify(ceremonies));
+            localStorage.setItem('scout_skits', JSON.stringify(skits));
+            localStorage.setItem('scout_games', JSON.stringify(games));
+            
             localStorage.setItem('scout_updatedAt', localUpdatedAt.toString());
         };
 
