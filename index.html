@@ -350,17 +350,11 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { initializeFirestore, memoryLocalCache, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-
-         window.__app_id = "1:1027621236936:web:aa023f54ddb6938c4d75fd";
-         window.__firebase_config = {
-  apiKey: "AIzaSyDco3YdquBXu90sItwIJ9GLvof8_fvUhzo",
-  authDomain: "universal-cub.firebaseapp.com",
-  projectId: "universal-cub",
-  storageBucket: "universal-cub.firebasestorage.app",
-  messagingSenderId: "1027621236936",
-  appId: "1:1027621236936:web:aa023f54ddb6938c4d75fd"
-};
-
+        // =========================================================================
+        // !!! IMPORTANT: PASTE YOUR FIREBASE CONFIGURATION HERE !!!
+        // window.__app_id = "your-app-id-here";
+        // window.__firebase_config = '{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}';
+        // =========================================================================
 
         window.autoResizeTextarea = function(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
 
@@ -402,7 +396,12 @@
             setTimeout(() => { toast.classList.remove('translate-y-0', 'opacity-100'); toast.classList.add('translate-y-[-20px]', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, 4000);
         };
 
-        let fbConfig = null; try { if (typeof window.__firebase_config !== 'undefined') fbConfig = JSON.parse(window.__firebase_config); } catch (e) {}
+        let fbConfig = null; 
+        try { 
+            if (typeof window.__firebase_config !== 'undefined') {
+                fbConfig = typeof window.__firebase_config === 'string' ? JSON.parse(window.__firebase_config) : window.__firebase_config;
+            }
+        } catch (e) {}
         if (!fbConfig || !fbConfig.apiKey) fbConfig = { apiKey: "AIzaSyDco3YdquBXu90sItwIJ9GLvof8_fvUhzo", authDomain: "universal-cub.firebaseapp.com", projectId: "universal-cub", appId: "1:1027621236936:web:aa023f54ddb6938c4d75fd" };
 
         if (fbConfig && fbConfig.apiKey) {
@@ -826,4 +825,3 @@
     </script>
 </body>
 </html>
-
