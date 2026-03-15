@@ -350,17 +350,15 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { initializeFirestore, memoryLocalCache, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // =========================================================================
-        // !!! IMPORTANT: PASTE YOUR FIREBASE CONFIGURATION HERE !!!
-        // window.__app_id = "your-app-id-here";
-        // window.__firebase_config = '{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}';
-        // =========================================================================
-
         window.autoResizeTextarea = function(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
 
         let useFirebase = false; let auth = null; let db = null; let currentUser = null;
         let isAdmin = false; let isLeader = false; let isEditing = false; let currentView = 'links'; 
-        const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'universal-cub';
+        
+        // --- DATABASE LOCK ---
+        // We are ignoring any pasted configs and locking the app directly to 
+        // 'universal-cub', which is where all your data from yesterday is safely stored.
+        const appId = 'universal-cub';
         let localUpdatedAt = parseInt(localStorage.getItem('scout_updatedAt')) || 0;
         let isSyncing = false;
         
@@ -396,18 +394,11 @@
             setTimeout(() => { toast.classList.remove('translate-y-0', 'opacity-100'); toast.classList.add('translate-y-[-20px]', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, 4000);
         };
 
-        let fbConfig = null; 
-        try { 
-            if (typeof window.__firebase_config !== 'undefined') {
-                fbConfig = typeof window.__firebase_config === 'string' ? JSON.parse(window.__firebase_config) : window.__firebase_config;
-            }
-        } catch (e) {}
-        if (!fbConfig || !fbConfig.apiKey) fbConfig = { apiKey: "AIzaSyDco3YdquBXu90sItwIJ9GLvof8_fvUhzo", authDomain: "universal-cub.firebaseapp.com", projectId: "universal-cub", appId: "1:1027621236936:web:aa023f54ddb6938c4d75fd" };
+        const fbConfig = { apiKey: "AIzaSyDco3YdquBXu90sItwIJ9GLvof8_fvUhzo", authDomain: "universal-cub.firebaseapp.com", projectId: "universal-cub", appId: "1:1027621236936:web:aa023f54ddb6938c4d75fd" };
 
-        if (fbConfig && fbConfig.apiKey) {
-            const app = initializeApp(fbConfig); auth = getAuth(app); db = initializeFirestore(app, { localCache: memoryLocalCache() }); useFirebase = true;
-            const initAuth = async () => { try { if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) await signInWithCustomToken(auth, window.__initial_auth_token); else await signInAnonymously(auth); } catch (e) { } };
-            initAuth().then(() => {
+        const app = initializeApp(fbConfig); auth = getAuth(app); db = initializeFirestore(app, { localCache: memoryLocalCache() }); useFirebase = true;
+        const initAuth = async () => { try { if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) await signInWithCustomToken(auth, window.__initial_auth_token); else await signInAnonymously(auth); } catch (e) { } };
+        initAuth().then(() => {
                 onAuthStateChanged(auth, (user) => {
                     currentUser = user;
                     if (user) {
